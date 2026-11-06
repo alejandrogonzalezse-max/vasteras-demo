@@ -1,0 +1,35 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
+import { PAGES, enter } from './helpers';
+
+for (const scheme of ['light', 'dark'] as const) {
+	test(`axe utan allvarliga fel – ${scheme === 'light' ? 'Kvällsblå' : 'Mälarnatt'}`, async ({ page }) => {
+		test.setTimeout(120_000);
+		await page.emulateMedia({ colorScheme: scheme });
+		await page.goto('/');
+		const check = async (path: string) => {
+			await page.waitForTimeout(path === '/kartan' ? 800 : 150);
+			const res = await new AxeBuilder({ page })
+				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+				.exclude('.leaflet-tile-pane')
+				.analyze();
+			const bad = res.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+			const summary = bad.map((v) => `${path}: ${v.id} – ${v.nodes.map((n) => n.target.join(' ')).slice(0, 4).join(' | ')}`);
+			expect(summary, summary.join('\n')).toEqual([]);
+		};
+		await check('/');
+		await enter(page);
+		for (const path of PAGES) {
+			await page.goto(path);
+			await check(path);
+		}
+		// Några interaktiva lägen
+		await page.goto('/hem');
+		await page.getByTestId('dice').click();
+		await page.getByRole('button', { name: 'Jag har tråkigt nu' }).click();
+		await check('/hem (efter tärning)');
+		await page.goto('/moderering');
+		await page.getByTestId('queue-item').first().getByRole('button', { name: 'Ta bort' }).click();
+		await check('/moderering (beslut)');
+	});
+}

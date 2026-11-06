@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="sv">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content="Demo av en ideell mötesplats för Västerås. Allt innehåll är påhittat." />
+		<meta name="robots" content="noindex" />
+		<script>
+			// Sätt tema innan första målningen så att sidan inte blinkar.
+			(function () {
+				var pref = 'system';
+				try { pref = localStorage.getItem('vasteras-demo-theme') || 'system'; } catch (e) {}
+				var dark = pref === 'dark' || (pref === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+				document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+				// Inloggad i demon? Sätts före första målningen så att sidan inte hoppar.
+				var auth = 'out';
+				try { auth = JSON.parse(localStorage.getItem('vasteras-demo-v1') || '{}').loggedIn ? 'in' : 'out'; } catch (e) {}
+				document.documentElement.dataset.auth = auth;
+			})();
+		</script>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>
