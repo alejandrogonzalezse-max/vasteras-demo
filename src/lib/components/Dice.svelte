@@ -103,7 +103,7 @@
 
 	<p class="ctx small">
 		<Icon name={weatherIcon} size={14} />
-		<span>{ctx.dateText} · <span class="num">{ctx.temp}°</span> · {ctx.weatherText}{#if ctx.holidayText} · {ctx.holidayText}{/if}</span>
+		<span>{ctx.dateText} · <span class="num">{ctx.temp}°</span> · {ctx.weatherText}{ctx.holidayText ? ` · ${ctx.holidayText}` : ''}</span>
 		<span class="tag warn">påhittat väder</span>
 	</p>
 
