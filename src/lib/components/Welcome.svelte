@@ -14,7 +14,9 @@
 
 	$effect(() => {
 		if (!dlg) return;
-		if (open && !dlg.open) dlg.showModal();
+		if (open && !dlg.open) {
+			dlg.showModal();
+		}
 		if (!open && dlg.open) dlg.close();
 	});
 </script>
@@ -43,7 +45,9 @@
 				Det här är Västeråsarna – din idé, byggd på riktigt. Klicka runt, slå tärningen och sätt upp en lapp.
 			</p>
 			<div class="acts">
-				<button type="button" class="btn btn-primary" onclick={ontour}><Icon name="eye" size={12} /> Visa mig runt</button>
+				<!-- Dialogens huvudval får fokus när fönstret öppnas (standardbeteende för <dialog>). -->
+				<!-- svelte-ignore a11y_autofocus -->
+				<button type="button" class="btn btn-primary" autofocus onclick={ontour}><Icon name="eye" size={12} /> Visa mig runt</button>
 				<button type="button" class="btn" onclick={onself}>Jag klickar själv</button>
 			</div>
 		</div>

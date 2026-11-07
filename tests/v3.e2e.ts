@@ -130,6 +130,7 @@ test.describe('välkomstfönstret', () => {
 		await expect(dlg).toBeVisible();
 		await expect(dlg.getByRole('heading')).toHaveText('Hej Kalle!');
 		await expect(dlg).toContainText('Det här är Västeråsarna – din idé, byggd på riktigt.');
+		await expect(dlg.getByRole('button', { name: 'Visa mig runt' })).toBeFocused();
 		await dlg.getByRole('button', { name: 'Jag klickar själv' }).click();
 		await expect(page).toHaveURL(/\/hem$/);
 
