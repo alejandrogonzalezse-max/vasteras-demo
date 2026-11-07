@@ -187,7 +187,7 @@
 					{/each}
 				</p>
 				<button type="button" class="linkbtn small tour-btn" onclick={startTour} data-testid="tour-start">
-					<Icon name="eye" size={12} /> Visa mig runt
+					<Icon name="eye" size={12} /> <span class="tb-long">Visa mig runt</span><span class="tb-short" aria-hidden="true">Rundtur</span>
 				</button>
 			</div>
 		</div>
@@ -506,6 +506,29 @@
 
 	.news-item:visited {
 		color: var(--link);
+	}
+
+	.tb-short {
+		display: none;
+	}
+
+	@media (max-width: 599px) {
+		.tb-long {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip: rect(0, 0, 0, 0);
+			white-space: nowrap;
+		}
+
+		.tb-short {
+			display: inline;
+		}
+
+		.news-label {
+			display: none;
+		}
 	}
 
 	.tour-btn {
