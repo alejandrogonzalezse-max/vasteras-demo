@@ -12,7 +12,7 @@
 	import fontDisplay from '@fontsource/vt323/files/vt323-latin-400-normal.woff2?url';
 
 	import { onMount } from 'svelte';
-	import { goto, afterNavigate, onNavigate } from '$app/navigation';
+	import { goto, afterNavigate, onNavigate, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { DEMO_NOTICE, DESCRIPTION, ME_ID, SITE_NAME, SITE_URL, SLOGAN, TAGLINE, THEME_KEY } from '#lib/config.ts';
 	import { userById } from '#lib/mock.ts';
@@ -80,6 +80,7 @@
 	onMount(() => {
 		scheduleLogins();
 		demo.load();
+		handleEntryParams();
 		// ?hej=<namn>: Grundaren får namnet, och välkomstfönstret visas en gång per namn.
 		const name = sanitizeName(new URLSearchParams(location.search).get('hej'));
 		if (name) {
@@ -134,7 +135,22 @@
 		demo.d.tour = 0;
 	}
 
+	/** ?in=1 loggar in i demon, ?rundtur=1 startar rundturen. Parametrarna tas sedan bort ur adressen. */
+	function handleEntryParams() {
+		if (!demo.ready) return;
+		const url = new URL(location.href);
+		const inParam = url.searchParams.get('in') === '1';
+		const tourParam = url.searchParams.get('rundtur') === '1';
+		if (!inParam && !tourParam) return;
+		if (inParam) demo.d.loggedIn = true;
+		if (tourParam) demo.d.tour = 0;
+		url.searchParams.delete('in');
+		url.searchParams.delete('rundtur');
+		replaceState(url.pathname + url.search + url.hash, page.state);
+	}
+
 	afterNavigate(() => {
+		handleEntryParams();
 		menuOpen = false;
 		// Scrolla bara flikraden i sidled (mellanbredd), aldrig själva sidan.
 		const tabs = document.querySelector<HTMLElement>('.tabs');

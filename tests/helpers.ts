@@ -24,7 +24,7 @@ export const PAGES = [
 /** Går in i demon via startsidans knapp. */
 export async function enter(page: Page) {
 	await page.goto('/');
-	await page.getByRole('button', { name: 'Titta runt själv' }).click();
+	await page.getByRole('link', { name: 'Titta runt själv' }).click();
 	await expect(page).toHaveURL(/\/hem$/);
 	await expect(page.getByRole('navigation', { name: 'Huvudmeny' })).toBeVisible();
 }

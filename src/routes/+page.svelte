@@ -53,10 +53,11 @@
 		</p>
 		<p class="pledge display">{TAGLINE}</p>
 		<div class="row cta">
-			<button type="button" class="btn btn-primary btn-big" onclick={() => { demo.d.loggedIn = true; demo.d.tour = 0; goto('/hem'); }} data-testid="tour-landing">
+			<!-- Vanliga länkar: fungerar även innan JavaScript har laddat (se +layout.svelte). -->
+			<a class="btn btn-primary btn-big" href="/hem?in=1&rundtur=1" data-testid="tour-landing">
 				<Icon name="eye" size={14} /> Visa mig runt (2 min)
-			</button>
-			<button type="button" class="btn btn-big" onclick={() => { demo.d.loggedIn = true; goto('/hem'); }}>Titta runt själv</button>
+			</a>
+			<a class="btn btn-big" href="/hem?in=1">Titta runt själv</a>
 		</div>
 		<p class="small more"><a href="/om">Läs om Västeråsarna och varför det finns</a> · <a href="#inbjudan">Har du en inbjudan?</a></p>
 	</div>

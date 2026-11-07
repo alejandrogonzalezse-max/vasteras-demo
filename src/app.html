@@ -15,6 +15,7 @@
 				// Inloggad i demon? Sätts före första målningen så att sidan inte hoppar.
 				var auth = 'out';
 				try { auth = JSON.parse(localStorage.getItem('vasteras-demo-v1') || '{}').loggedIn ? 'in' : 'out'; } catch (e) {}
+				if (/[?&]in=1(&|$)/.test(location.search)) auth = 'in';
 				document.documentElement.dataset.auth = auth;
 			})();
 		</script>
