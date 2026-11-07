@@ -12,14 +12,16 @@
 	import fontDisplay from '@fontsource/vt323/files/vt323-latin-400-normal.woff2?url';
 
 	import { onMount } from 'svelte';
-	import { goto, afterNavigate } from '$app/navigation';
+	import { goto, afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { DEMO_NOTICE, ME_ID, SITE_NAME, SLOGAN, TAGLINE, THEME_KEY } from '#lib/config.ts';
+	import { DEMO_NOTICE, DESCRIPTION, ME_ID, SITE_NAME, SITE_URL, SLOGAN, TAGLINE, THEME_KEY } from '#lib/config.ts';
 	import { userById } from '#lib/mock.ts';
 	import { demo } from '#lib/state.svelte.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Gate from '#lib/components/Gate.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import Toaster from '#lib/components/Toaster.svelte';
+	import Tour from '#lib/components/Tour.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -67,6 +69,22 @@
 		if (demo.ready) document.documentElement.dataset.auth = demo.d.loggedIn ? 'in' : 'out';
 	});
 
+	// Mjuk övergång mellan sidor där webbläsaren stöder View Transitions.
+	onNavigate((navigation) => {
+		if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		if (navigation.from?.url.pathname === navigation.to?.url.pathname) return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
+
+	function startTour() {
+		demo.d.tour = 0;
+	}
+
 	afterNavigate(() => {
 		// Scrolla bara flikraden i sidled (mellanbredd), aldrig själva sidan.
 		const tabs = document.querySelector<HTMLElement>('.tabs');
@@ -98,6 +116,19 @@
 
 <svelte:head>
 	<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+	<link rel="manifest" href="/manifest.webmanifest" />
+	<meta name="theme-color" content="#1b56c4" />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content={SITE_NAME} />
+	<meta property="og:title" content={`${SITE_NAME} – ${SLOGAN}`} />
+	<meta property="og:description" content={DESCRIPTION} />
+	<meta property="og:image" content={`${SITE_URL}/og.png`} />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:alt" content="Pixelillustrationer av en brygga i månsken, ett bål och ett kubbspel, med texten Västerås. Lite mer som förr." />
+	<meta property="og:locale" content="sv_SE" />
+	<meta name="twitter:card" content="summary_large_image" />
 	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontBody} />
 	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontBold} />
 	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontPixel} />
@@ -145,6 +176,21 @@
 				{/each}
 			</ul>
 		</nav>
+		<div class="news auth-in" aria-label="Nytt sedan sist">
+			<div class="wrap news-row">
+				<p class="news-list">
+					<span class="news-label display">Nytt:</span>
+					{#each demo.news as n (n.key)}
+						<a class="news-item" href={n.href}><Icon name={n.icon} size={12} /> {n.text}</a>
+					{:else}
+						<span class="muted">Inget nytt – perfekt läge att gå ut.</span>
+					{/each}
+				</p>
+				<button type="button" class="linkbtn small tour-btn" onclick={startTour} data-testid="tour-start">
+					<Icon name="eye" size={12} /> Visa mig runt
+				</button>
+			</div>
+		</div>
 	{/if}
 </header>
 
@@ -160,6 +206,9 @@
 		{#if showOut}<div class="auth-out"><Gate /></div>{/if}
 	{/if}
 </main>
+
+<Toaster />
+<Tour />
 
 <footer class="site-foot">
 	<div class="wrap foot-grid">
@@ -409,6 +458,62 @@
 			flex-basis: 100%;
 			font-size: var(--text-xs);
 		}
+	}
+
+	.news {
+		border-top: 1px solid var(--border);
+		background: var(--surface);
+	}
+
+	.news-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		min-height: 40px;
+	}
+
+	.news-list {
+		display: flex;
+		align-items: center;
+		gap: 4px var(--space-2);
+		margin: 0;
+		min-width: 0;
+		overflow-x: auto;
+		scrollbar-width: none;
+		white-space: nowrap;
+		font-size: var(--text-sm);
+	}
+
+	.news-list::-webkit-scrollbar {
+		display: none;
+	}
+
+	.news-label {
+		color: var(--head-text);
+	}
+
+	.news-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 8px;
+		font-weight: 700;
+		background: var(--warn-soft);
+		border: 1px solid var(--demo-border);
+		border-radius: var(--radius-pill);
+	}
+
+	.news-item:visited {
+		color: var(--link);
+	}
+
+	.tour-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		min-height: 32px;
+		white-space: nowrap;
 	}
 
 	main {

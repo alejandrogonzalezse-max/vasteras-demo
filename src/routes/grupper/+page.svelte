@@ -1,9 +1,22 @@
 <script lang="ts">
 	import { SITE_NAME } from '#lib/config.ts';
-	import { groups } from '#lib/mock.ts';
-	import { demo } from '#lib/state.svelte.ts';
+	import { groups, users } from '#lib/mock.ts';
+	import { demo, whenLabel } from '#lib/state.svelte.ts';
+	import Avatar from '#lib/components/Avatar.svelte';
 	import Box from '#lib/components/Box.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+
+	/** Några påhittade medlemmar per grupp, för medlemsraden. */
+	function membersOf(id: string) {
+		const start = [...id].reduce((n, c) => n + c.charCodeAt(0), 0) % users.length;
+		return [...users.slice(start), ...users.slice(0, start)].filter((u) => !u.mod).slice(0, 5);
+	}
+
+	function nextMeet(id: string) {
+		return demo.allActivities
+			.filter((a) => a.groupId === id && demo.minutesUntil(a) >= 0)
+			.sort((x, y) => demo.minutesUntil(x) - demo.minutesUntil(y))[0];
+	}
 
 	function act(id: string, open: boolean) {
 		const cur = demo.d.groups[id];
@@ -32,6 +45,16 @@
 				{/snippet}
 				<p class="small muted"><span class="num">{g.members + (status === 'member' ? 1 : 0)}</span> medlemmar</p>
 				<p>{g.text}</p>
+				<div class="members">
+					<span class="av-stack" aria-hidden="true">
+						{#each membersOf(g.id) as m (m.id)}<Avatar id={m.id} size={30} />{/each}
+					</span>
+					<span class="xs muted">{membersOf(g.id).slice(0, 2).map((m) => m.name).join(', ')} m.fl.</span>
+				</div>
+				{#if nextMeet(g.id)}
+					{@const n = nextMeet(g.id)!}
+					<p class="small next"><Icon name="calendar" size={12} /> Nästa träff: <a href={`/anslagstavlan#lapp-${n.id}`}>{n.title}</a> <span class="muted">({whenLabel(demo.minutesUntil(n), demo.now)})</span></p>
+				{/if}
 				{#if g.note}<p class="xs note"><Icon name="flag" size={10} /> {g.note}</p>{/if}
 				<div class="g-act">
 					{#if status === 'member'}
@@ -69,6 +92,25 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.members {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
+	}
+
+	.av-stack {
+		display: inline-flex;
+	}
+
+	.av-stack :global(.av + .av) {
+		margin-left: -8px;
+	}
+
+	.next {
+		margin-bottom: var(--space-3);
 	}
 
 	.kind {

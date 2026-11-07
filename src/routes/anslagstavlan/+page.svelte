@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { SITE_NAME, ME_ID } from '#lib/config.ts';
-	import { afterNattbad, groups, type Visibility } from '#lib/mock.ts';
+	import { afterNattbad, groups, places, type Visibility } from '#lib/mock.ts';
 	import { demo } from '#lib/state.svelte.ts';
 	import ActivityCard from '#lib/components/ActivityCard.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
@@ -46,6 +46,14 @@
 		}
 	}
 
+	// Har man tittat på tavlan är nya "Jag kommer" sedda.
+	$effect(() => {
+		if (demo.ready && demo.d.unseenAttend) {
+			const t = setTimeout(() => (demo.d.unseenAttend = 0), 1500);
+			return () => clearTimeout(t);
+		}
+	});
+
 	$effect(() => {
 		if (demo.ready && demo.d.draft) {
 			title = demo.d.draft.title;
@@ -79,6 +87,7 @@
 			document.getElementById('f-place')?.focus();
 			return;
 		}
+		const known = places.find((p) => place.trim().toLowerCase().startsWith(p.name.toLowerCase()));
 		const note = demo.addNote({
 			title: title.trim(),
 			place: place.trim(),
@@ -87,9 +96,11 @@
 			visibility,
 			groupId: visibility === 'grupp' ? groupId : undefined,
 			recurring,
-			text: text.trim()
+			text: text.trim(),
+			at: known ? { lat: known.lat, lng: known.lng, placeId: known.id } : undefined
 		});
 		posted = note.title;
+		demo.toast('Lappen sitter uppe! Vill du se var den hamnade?', `/kartan?nal=${note.id}`, 'Se den på kartan');
 		title = place = bring = text = '';
 		recurring = false;
 		fromDice = false;
@@ -165,7 +176,11 @@
 				</div>
 				<div class="field">
 					<label for="f-place">Plats</label>
-					<input id="f-place" type="text" maxlength="80" bind:value={place} placeholder="Grillplatsen vid stora stenen" />
+					<input id="f-place" type="text" maxlength="80" list="platser" bind:value={place} placeholder="t.ex. Djäkneberget, grillplatsen" aria-describedby="f-place-hint" />
+					<datalist id="platser">
+						{#each places as p (p.id)}<option value={p.name}></option>{/each}
+					</datalist>
+					<span class="hint" id="f-place-hint">Välj en känd plats så hamnar nålen rätt på kartan.</span>
 				</div>
 				<div class="field">
 					<label for="f-when">När</label>

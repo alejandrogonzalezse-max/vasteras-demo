@@ -4,6 +4,9 @@
 import { ME_ID, STORAGE_KEY, THEME_KEY } from './config.ts';
 import {
 	activities,
+	myFriends,
+	userById,
+	type DiaryPost,
 	seasonPresets,
 	type Activity,
 	type ForumPost,
@@ -49,6 +52,23 @@ export interface DemoData {
 	nattbadComments: GuestEntry[];
 	forumReplies: Record<string, ForumPost[]>;
 	lastIdea: string | null;
+	/** Har man tittat på sina nya gästboksinlägg? */
+	seenGuestbook: boolean;
+	/** Antal nya "Jag kommer" på mina lappar som jag inte sett än. */
+	unseenAttend: number;
+	myPosts: DiaryPost[];
+	lappComments: Record<string, GuestEntry[]>;
+	/** Visa inte mina besök på andras profiler. */
+	sneak: boolean;
+	/** Pågående rundtur (steg) eller null. */
+	tour: number | null;
+}
+
+export interface Toast {
+	id: number;
+	text: string;
+	href?: string;
+	linkText?: string;
 }
 
 function defaults(): DemoData {
@@ -69,7 +89,13 @@ function defaults(): DemoData {
 		draft: null,
 		nattbadComments: [],
 		forumReplies: {},
-		lastIdea: null
+		lastIdea: null,
+		seenGuestbook: false,
+		unseenAttend: 0,
+		myPosts: [],
+		lappComments: {},
+		sneak: false,
+		tour: null
 	};
 }
 
@@ -91,6 +117,60 @@ class Demo {
 	/** true om lagring inte gick – då sparas allt bara i minnet. */
 	memoryOnly = $state(false);
 	now = $state(demoNow());
+	toasts = $state<Toast[]>([]);
+	#toastId = 0;
+	#timers: ReturnType<typeof setTimeout>[] = [];
+
+	/** Kort notis nere i hörnet. Läses upp av skärmläsare (aria-live). */
+	toast(text: string, href?: string, linkText?: string) {
+		const id = ++this.#toastId;
+		this.toasts.push({ id, text, href, linkText });
+		this.#later(() => this.dismiss(id), 6500);
+	}
+
+	dismiss(id: number) {
+		this.toasts = this.toasts.filter((t) => t.id !== id);
+	}
+
+	#later(fn: () => void, ms: number) {
+		this.#timers.push(setTimeout(fn, ms));
+	}
+
+	/** Kompisar som reagerar en stund efter att man gjort något – så känns demon levande. */
+	#reactToNote(noteId: string) {
+		const fans = ['matteok', 'linnea-l', 'elinb', 'erik-pa-raby'];
+		const [first, second] = [...fans].sort(() => Math.random() - 0.5);
+		const step = (who: string, ms: number) =>
+			this.#later(() => {
+				const n = this.d.myNotes.find((x) => x.id === noteId);
+				if (!n || n.attendees.includes(who)) return;
+				n.attendees.push(who);
+				this.d.unseenAttend += 1;
+				this.toast(`${userById(who)?.name} trycker "Jag kommer" på din lapp!`, `/anslagstavlan#lapp-${noteId}`, 'Visa lappen');
+			}, ms);
+		step(first, 3500);
+		step(second, 9000);
+	}
+
+	addPost(text: string, scene?: string, caption?: string) {
+		const post: DiaryPost = {
+			id: 'p' + Math.random().toString(36).slice(2, 8),
+			by: ME_ID,
+			ago: 'nyss',
+			text,
+			photo: scene ? { caption: caption ?? '', scene } : undefined,
+			schysst: 0
+		};
+		this.d.myPosts.unshift(post);
+		const fan = myFriends[Math.floor(Math.random() * 4)];
+		this.#later(() => {
+			const p = this.d.myPosts.find((x) => x.id === post.id);
+			if (!p) return;
+			p.schysst += 1;
+			this.toast(`${userById(fan)?.name} tycker att ditt dagboksinlägg är schysst.`, '/hem#dagboken', 'Till dagboken');
+		}, 4000);
+		return post;
+	}
 
 	load() {
 		try {
@@ -114,6 +194,9 @@ class Demo {
 	}
 
 	reset() {
+		this.#timers.forEach(clearTimeout);
+		this.#timers = [];
+		this.toasts = [];
 		this.d = defaults();
 		try {
 			localStorage.removeItem(STORAGE_KEY);
@@ -142,7 +225,23 @@ class Demo {
 	}
 
 	toggleAttend(a: Activity) {
-		this.d.attending[a.id] = !this.isAttending(a);
+		const going = !this.isAttending(a);
+		this.d.attending[a.id] = going;
+		if (going && a.by !== ME_ID) {
+			const others = this.attendeesOf(a).length - 1;
+			this.toast(
+				`Du kommer på "${a.title}" ${whenLabel(this.minutesUntil(a), this.now).replace(/^om .* · /, 'kl ')}.${others ? ` ${others} till kommer.` : ''}`
+			);
+		}
+	}
+
+	/** Antal saker i "Nytt"-raden, Lunarstorm-stil. */
+	get news() {
+		const items: { key: string; text: string; href: string; icon: string }[] = [];
+		if (this.d.friendRequest === null) items.push({ key: 'van', text: '1 vänförfrågan', href: '/hem#vanforfragan', icon: 'plus' });
+		if (!this.d.seenGuestbook) items.push({ key: 'gb', text: '2 nya i gästboken', href: `/profil/${ME_ID}#gastbok`, icon: 'book' });
+		if (this.d.unseenAttend) items.push({ key: 'kom', text: `${this.d.unseenAttend} kommer på din lapp`, href: '/anslagstavlan#lappar', icon: 'check' });
+		return items;
 	}
 
 	addNote(n: {
@@ -154,14 +253,16 @@ class Demo {
 		groupId?: string;
 		recurring: boolean;
 		text: string;
+		at?: { lat: number; lng: number; placeId: string };
 	}) {
 		const id = 'n' + Math.random().toString(36).slice(2, 8);
 		const note: Activity = {
 			id,
 			title: n.title,
 			place: n.place,
-			lat: 59.6099 + (Math.random() - 0.5) * 0.01,
-			lng: 16.5448 + (Math.random() - 0.5) * 0.02,
+			lat: n.at?.lat ?? 59.6099 + (Math.random() - 0.5) * 0.01,
+			lng: n.at?.lng ?? 16.5448 + (Math.random() - 0.5) * 0.02,
+			placeId: n.at?.placeId,
 			startIn: n.when,
 			bring: n.bring,
 			by: ME_ID,
@@ -175,6 +276,7 @@ class Demo {
 		// Lappar sparas med absolut tid så att "om 2 timmar" stämmer efter omladdning.
 		(note as Activity & { createdAt: number }).createdAt = this.now;
 		this.d.myNotes.unshift(note);
+		this.#reactToNote(note.id);
 		return note;
 	}
 

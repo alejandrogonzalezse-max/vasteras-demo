@@ -3,6 +3,10 @@ export const SITE_NAME = '[ARBETSNAMN]';
 export const SLOGAN = 'Västerås. Lite mer som förr.';
 export const TAGLINE = 'Ingen reklam. Ingen algoritm. 18+.';
 export const CITY = 'Västerås';
+/** Publik adress, används för länkförhandsvisning (Open Graph). */
+export const SITE_URL = 'https://vasteras-demo.netlify.app';
+export const DESCRIPTION =
+	'En ideell mötesplats där västeråsare lägger ut saker att göra tillsammans – nattbad, korvgrillning, öppet garage, brännboll. Ingen reklam, ingen algoritm, 18+.';
 export const DEMO_NOTICE = 'Demo – allt innehåll är påhittat.';
 
 /** Den påhittade inloggade användaren i demon. */

@@ -527,6 +527,22 @@ const scenes: Record<string, { alt: string; rects: R[] }> = {
 	}
 };
 
+/** Korta namn på bilderna – används som bildtext när man väljer en bild själv. */
+export const SCENE_TITLES: Record<string, string> = {
+	bal: 'Eld vid vattnet',
+	brygga: 'Bryggan i månsken',
+	garage: 'Öppet garage',
+	kubb: 'Kubb på gräset',
+	termos: 'Termos och filtar',
+	svamp: 'Svampkorgen',
+	skridskor: 'Skridskor på isen',
+	bradspel: 'Brädspelskväll',
+	moped: 'Mopeden vid grusvägen',
+	solnedgang: 'Solnedgång över sjön',
+	pulka: 'Pulkabacken',
+	fika: 'Fikabordet'
+};
+
 export type SceneName = keyof typeof scenes;
 export const SCENES = scenes;
 export const sceneNames = Object.keys(scenes);

@@ -1,0 +1,14 @@
+{
+	"name": "[ARBETSNAMN] – Västerås. Lite mer som förr.",
+	"short_name": "[ARBETSNAMN]",
+	"description": "Demo av en ideell mötesplats för Västerås. Allt innehåll är påhittat.",
+	"lang": "sv",
+	"start_url": "/hem",
+	"display": "standalone",
+	"background_color": "#e6ecf5",
+	"theme_color": "#1b56c4",
+	"icons": [
+		{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+		{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+	]
+}

@@ -1,28 +1,33 @@
 <script lang="ts">
 	import { userById } from '#lib/mock.ts';
-	import Icon from './Icon.svelte';
+	import { avatarRects } from '#lib/avatars.ts';
 
 	let { id, size = 40 }: { id: string; size?: number } = $props();
 	const u = $derived(userById(id));
+	const rects = $derived(avatarRects(id, u?.color ?? '#567890'));
 </script>
 
-<span class="av" style:--c={u?.color ?? '#567'} style:--s={`${size}px`} aria-hidden="true">
-	<Icon name="user" size={Math.round(size * 0.7)} />
+<span class="av" style:--s={`${size}px`} aria-hidden="true">
+	<svg viewBox="0 0 16 16" shape-rendering="crispEdges" width={size - 4} height={size - 4} focusable="false">
+		{#each rects as [x, y, w, h, c], i (i)}<rect {x} {y} width={w} height={h} fill={c} />{/each}
+	</svg>
 </span>
 
 <style>
 	.av {
 		display: inline-grid;
-		place-items: end center;
+		place-items: center;
 		width: var(--s);
 		height: var(--s);
 		flex: none;
-		color: rgb(255 255 255 / 0.85);
-		background: var(--c);
-		background-image: linear-gradient(160deg, rgb(255 255 255 / 0.2), rgb(0 0 0 / 0.15));
-		border: 2px solid var(--photo-frame);
-		outline: 1px solid var(--border);
+		background: var(--photo-frame);
+		border: 1px solid var(--border);
 		border-radius: 2px;
+		box-shadow: var(--shadow-sm);
 		overflow: hidden;
+	}
+
+	.av svg {
+		display: block;
 	}
 </style>

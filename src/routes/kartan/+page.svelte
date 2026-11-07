@@ -11,6 +11,7 @@
 	import Box from '#lib/components/Box.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import UserLink from '#lib/components/UserLink.svelte';
+	import Photo from '#lib/components/Photo.svelte';
 
 	type Pin = { kind: 'akt'; item: Activity } | { kind: 'plats'; item: Place };
 	type Sel =
@@ -262,6 +263,7 @@
 					<ActivityCard a={sel.item} headingLevel={3} />
 				{:else if sel.kind === 'plats'}
 					{@const p = sel.item}
+					<div class="place-pic"><Photo caption={p.name} scene={p.scene} showCaption={false} /></div>
 					<h3>{p.name}</h3>
 					<p class="small muted">{p.kind}</p>
 					<p>{p.text}</p>
@@ -516,6 +518,12 @@
 		outline: 3px solid var(--focus);
 		outline-offset: 2px;
 		border-radius: var(--radius-lg);
+	}
+
+	.place-pic {
+		max-width: 180px;
+		margin-bottom: var(--space-2);
+		transform: rotate(-1.5deg);
 	}
 
 	.panel h3 {

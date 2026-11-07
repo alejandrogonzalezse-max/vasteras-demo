@@ -46,6 +46,9 @@
 		<p class="pledge display">{TAGLINE}</p>
 		<div class="row">
 			<a class="btn btn-primary btn-big" href="#inbjudan">Jag har en inbjudan</a>
+			<button type="button" class="btn btn-big" onclick={() => { demo.d.loggedIn = true; demo.d.tour = 0; goto('/hem'); }} data-testid="tour-landing">
+				<Icon name="eye" size={14} /> Visa mig runt (2 min)
+			</button>
 			<button type="button" class="btn btn-big" onclick={() => { demo.d.loggedIn = true; goto('/hem'); }}>Titta runt i demon</button>
 		</div>
 	</div>

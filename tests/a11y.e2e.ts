@@ -31,5 +31,19 @@ for (const scheme of ['light', 'dark'] as const) {
 		await page.goto('/moderering');
 		await page.getByTestId('queue-item').first().getByRole('button', { name: 'Ta bort' }).click();
 		await check('/moderering (beslut)');
+		await page.goto('/hem');
+		await page.getByRole('button', { name: 'Lägg till bild' }).click();
+		await page.getByTestId('tour-start').click();
+		await expect(page.getByTestId('tour')).toBeVisible();
+		await check('/hem (bildväljare + rundtur)');
+		await page.keyboard.press('Escape');
+		await page.goto('/anslagstavlan');
+		const card = page.locator('#lapp-a-bradspel');
+		await card.getByRole('button', { name: /Kommentarer/ }).click();
+		await card.getByRole('button', { name: 'Jag kommer' }).click();
+		await expect(page.getByText('Du kommer på')).toBeVisible();
+		await check('/anslagstavlan (kommentarer + notis)');
+		await page.goto('/profil/sannas');
+		await check('/profil/sannas (besökare)');
 	});
 }

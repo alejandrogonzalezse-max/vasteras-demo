@@ -5,6 +5,7 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Box from '#lib/components/Box.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import Scene from '#lib/components/Scene.svelte';
 	import UserLink from '#lib/components/UserLink.svelte';
 	import type { PageProps } from './$types';
 
@@ -26,6 +27,27 @@
 	const entries = $derived([...(demo.d.guestbook[u.id] ?? []), ...(guestbooks[u.id] ?? defaultGuestbook(u.id))]);
 	const isFriend = $derived(myFriends.includes(u.id) || (u.id === 'tobbe-tillberga' && demo.d.friendRequest === 'accepted'));
 	let requested = $state<Record<string, boolean>>({});
+
+	// Lunarstorm-klassikern: senaste besökarna. Påhittade, utom att du själv syns hos andra.
+	const TIMES = ['i dag 16:12', 'i dag 14:47', 'i dag 11:03', 'i går 22:30', 'i går 19:15'];
+	const visitors = $derived(
+		[
+			...(!isMe && !demo.d.sneak ? [{ id: ME_ID, when: 'nyss' }] : []),
+			...u.topFriends
+				.filter((id) => id !== ME_ID)
+				.slice(2, 7)
+				.map((id, i) => ({ id, when: TIMES[i] }))
+		].slice(0, 5)
+	);
+
+	// Två gästboksinlägg är "nya" tills man har tittat på sin egen profil.
+	let newCount = $state(0);
+	$effect(() => {
+		if (demo.ready && isMe && !demo.d.seenGuestbook) {
+			newCount = 2;
+			demo.d.seenGuestbook = true;
+		}
+	});
 	let text = $state('');
 
 	function write(e: SubmitEvent) {
@@ -77,11 +99,25 @@
 					</div>
 				{/if}
 			</Box>
+			<Box title="Senaste besökarna" icon="eye">
+				<ul class="plain visitors">
+					{#each visitors as v (v.id)}
+						<li>
+							<Avatar id={v.id} size={36} />
+							<span class="small">{#if v.id === ME_ID}<strong>Du</strong>{:else}<UserLink id={v.id} />{/if}<br /><span class="xs muted">{v.when}</span></span>
+						</li>
+					{/each}
+				</ul>
+				<label class="check xs sneak">
+					<input type="checkbox" bind:checked={demo.d.sneak} />
+					<span>Smygläge: visa inte mina besök på andras profiler</span>
+				</label>
+			</Box>
 			<Box title="Topp 8 platser" icon="tree">
 				<ol class="plain top8 places">
 					{#each u.topPlaces as pid, i (pid)}
 						{@const pl = placeById(pid)}
-						<li><a href="/kartan"><span class="pl-tile"><Icon name="tree" size={18} /><span class="num rank">{i + 1}</span></span><span class="xs">{pl?.name}</span></a></li>
+						<li><a href="/kartan"><span class="pl-tile"><Scene scene={pl?.scene ?? 'solnedgang'} alt={null} /><span class="num rank">{i + 1}</span></span><span class="xs">{pl?.name}</span></a></li>
 					{/each}
 				</ol>
 			</Box>
@@ -115,7 +151,10 @@
 						<li class="gb">
 							<Avatar id={e.by} size={36} />
 							<div>
-								<p class="small gb-head"><UserLink id={e.by} /> <span class="muted">· {e.ago}</span></p>
+								<p class="small gb-head">
+									<UserLink id={e.by} /> <span class="muted">· {e.ago}</span>
+									{#if isMe && i - (demo.d.guestbook[u.id]?.length ?? 0) >= 0 && i - (demo.d.guestbook[u.id]?.length ?? 0) < newCount}<span class="tag warn">Ny!</span>{/if}
+								</p>
 								<p class="gb-text">{e.text}</p>
 							</div>
 						</li>
@@ -285,22 +324,45 @@
 
 	.pl-tile {
 		position: relative;
-		display: grid;
-		place-items: center;
+		display: block;
 		width: 100%;
-		aspect-ratio: 1;
-		max-width: 64px;
-		color: var(--head-text);
-		background: linear-gradient(to bottom, var(--head-from), var(--head-to));
-		border: 1px solid var(--head-border);
-		border-radius: var(--radius-sm);
+		max-width: 72px;
+		padding: 3px;
+		background: var(--photo-frame);
+		border: 1px solid var(--border);
+		border-radius: 2px;
+		box-shadow: var(--shadow-sm);
 	}
 
 	.rank {
 		position: absolute;
-		top: 2px;
-		left: 4px;
+		top: -6px;
+		left: -6px;
+		display: grid;
+		place-items: center;
+		min-width: 18px;
+		height: 18px;
 		font-size: 10px;
+		color: var(--accent-text);
+		background: var(--accent);
+		border-radius: 50%;
+	}
+
+	.visitors {
+		display: grid;
+		gap: var(--space-2);
+		margin-bottom: var(--space-3);
+	}
+
+	.visitors li {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		line-height: 1.3;
+	}
+
+	.sneak {
+		margin: 0;
 	}
 
 	.gb-form {

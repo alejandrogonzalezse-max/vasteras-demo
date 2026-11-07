@@ -458,3 +458,28 @@ legend {
 		scroll-behavior: auto !important;
 	}
 }
+
+/* Rundturens markering av det som visas just nu */
+[data-tour-on] {
+	position: relative;
+	z-index: 1;
+	scroll-margin-top: 16px;
+	outline: 3px solid var(--accent);
+	outline-offset: 4px;
+	box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent);
+	border-radius: var(--radius-lg);
+	transition: box-shadow var(--speed) var(--ease);
+}
+
+/* Mjuka sidövergångar (View Transitions), av vid reducerad rörelse */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+	}
+}

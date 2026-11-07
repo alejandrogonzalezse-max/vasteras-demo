@@ -10,11 +10,29 @@
 	import Pager from '#lib/components/Pager.svelte';
 	import Photo from '#lib/components/Photo.svelte';
 	import UserLink from '#lib/components/UserLink.svelte';
+	import Scene from '#lib/components/Scene.svelte';
+	import { SCENE_TITLES, sceneNames } from '#lib/illustrations.ts';
 
 	const PER_PAGE = 4;
 	let pageNo = $state(1);
-	const pages = Math.ceil(diary.length / PER_PAGE);
-	const posts = $derived(diary.slice((pageNo - 1) * PER_PAGE, pageNo * PER_PAGE));
+	const allPosts = $derived([...demo.d.myPosts, ...diary]);
+	const pages = $derived(Math.ceil(allPosts.length / PER_PAGE));
+	const posts = $derived(allPosts.slice((pageNo - 1) * PER_PAGE, pageNo * PER_PAGE));
+
+	let postText = $state('');
+	let postScene = $state('');
+	let pickOpen = $state(false);
+
+	function writePost(e: SubmitEvent) {
+		e.preventDefault();
+		const text = postText.trim();
+		if (!text) return;
+		demo.addPost(text, postScene || undefined, postScene ? SCENE_TITLES[postScene] : undefined);
+		postText = '';
+		postScene = '';
+		pickOpen = false;
+		pageNo = 1;
+	}
 
 	const spontaneous = $derived(
 		demo.allActivities
@@ -78,6 +96,31 @@
 
 		<Box title="Dagboken" icon="book" id="dagboken">
 			{#snippet extra()}bara vänner{/snippet}
+			<form class="composer" onsubmit={writePost}>
+				<label for="post-text" class="label">Skriv i dagboken</label>
+				<textarea id="post-text" maxlength="500" bind:value={postText} placeholder="Vad har du hittat på i dag?"></textarea>
+				{#if pickOpen}
+					<fieldset class="pick">
+						<legend>Välj en bild</legend>
+						<label class="pick-opt none"><input type="radio" name="post-scene" value="" bind:group={postScene} /><span>Ingen bild</span></label>
+						{#each sceneNames as sc (sc)}
+							<label class="pick-opt">
+								<input type="radio" name="post-scene" value={sc} bind:group={postScene} />
+								<span class="pick-img"><Scene scene={sc} alt={null} /></span>
+								<span class="sr-only">{SCENE_TITLES[sc]}</span>
+							</label>
+						{/each}
+					</fieldset>
+				{/if}
+				<div class="spread">
+					<button type="button" class="linkbtn small" aria-expanded={pickOpen} onclick={() => (pickOpen = !pickOpen)}>
+						<Icon name="camera" size={12} />
+						{postScene ? `Bild: ${SCENE_TITLES[postScene]}` : 'Lägg till bild'}
+					</button>
+					<button type="submit" class="btn btn-small btn-primary">Publicera</button>
+				</div>
+				<p class="xs muted">Syns bara för dina vänner. Bara du ser hur många som tycker att det är schysst.</p>
+			</form>
 			<ul class="plain item-list diary">
 				{#each posts as post (post.id)}
 					{@const mine = post.by === ME_ID}
@@ -133,7 +176,7 @@
 			</form>
 		</Box>
 
-		<Box title="Vänförfrågan" icon="plus">
+		<Box title="Vänförfrågan" icon="plus" id="vanforfragan">
 			{#if demo.d.friendRequest === null}
 				<div class="req">
 					<Avatar id={friendRequest.from} size={40} />
@@ -176,6 +219,69 @@
 </div>
 
 <style>
+	.composer {
+		display: grid;
+		gap: 6px;
+		margin-bottom: var(--space-4);
+		padding-bottom: var(--space-3);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.composer textarea {
+		min-height: 72px;
+	}
+
+	.composer p {
+		margin: 0;
+	}
+
+	.pick {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+		gap: 6px;
+		margin: 0;
+	}
+
+	.pick-opt {
+		position: relative;
+		display: grid;
+		place-items: center;
+		min-height: 64px;
+		padding: 3px;
+		background: var(--photo-frame);
+		border: 2px solid var(--border);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+	}
+
+	.pick-opt input {
+		position: absolute;
+		opacity: 0;
+		width: 1px;
+		height: 1px;
+	}
+
+	.pick-img {
+		display: block;
+		width: 100%;
+	}
+
+	.pick-opt.none span {
+		font-size: var(--text-xs);
+		color: #333;
+		text-align: center;
+	}
+
+	.pick-opt:has(input:checked) {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.pick-opt:has(input:focus-visible) {
+		outline: 3px solid var(--focus);
+		outline-offset: 2px;
+	}
+
 	.spont {
 		display: grid;
 		gap: var(--space-2);

@@ -305,17 +305,18 @@ export interface Place {
 	lng: number;
 	kind: string;
 	text: string;
+	scene: string;
 }
 
 export const places: Place[] = [
-	{ id: 'bjorno', name: 'Björnö', lat: 59.5545, lng: 16.6335, kind: 'Naturreservat', text: 'Skog, klippor och badvikar ut mot Mälaren. Grillplatser och vindskydd.' },
-	{ id: 'framnas', name: 'Framnäs', lat: 59.5975, lng: 16.5745, kind: 'Badplats', text: 'Sandstrand nära stan, bastu på vintern. Klassiskt ställe för nattbad.' },
-	{ id: 'lovudden', name: 'Lövudden', lat: 59.5885, lng: 16.4985, kind: 'Strand och bryggor', text: 'Solnedgångar, kubb på gräset och bra abborrfiske från bryggorna.' },
-	{ id: 'vasaparken', name: 'Vasaparken', lat: 59.6112, lng: 16.5478, kind: 'Park', text: 'Mitt i stan. Brännboll, picknick och folk som säger hej.' },
-	{ id: 'anundshog', name: 'Anundshög', lat: 59.6316, lng: 16.6262, kind: 'Fornlämning', text: 'Sveriges största gravhög, skeppssättningar och runsten. Fint för söndagspromenader.' },
-	{ id: 'halla', name: 'Hälla', lat: 59.6178, lng: 16.6115, kind: 'Område', text: 'Butiker och verkstäder. Härifrån utgår många garagekvällar.' },
-	{ id: 'djakneberget', name: 'Djäkneberget', lat: 59.6138, lng: 16.5355, kind: 'Park och utsikt', text: 'Klippor, inskriptioner och grillplats med utsikt över stan.' },
-	{ id: 'kokpunkten', name: 'Kokpunkten-backen', lat: 59.6072, lng: 16.5598, kind: 'Pulkabacke', text: 'Den lilla backen vid Kokpunkten. Pulka när det finns snö, fika när det inte gör det.' }
+	{ id: 'bjorno', name: 'Björnö', lat: 59.5545, lng: 16.6335, kind: 'Naturreservat', text: 'Skog, klippor och badvikar ut mot Mälaren. Grillplatser och vindskydd.', scene: 'svamp' },
+	{ id: 'framnas', name: 'Framnäs', lat: 59.5975, lng: 16.5745, kind: 'Badplats', text: 'Sandstrand nära stan, bastu på vintern. Klassiskt ställe för nattbad.', scene: 'brygga' },
+	{ id: 'lovudden', name: 'Lövudden', lat: 59.5885, lng: 16.4985, kind: 'Strand och bryggor', text: 'Solnedgångar, kubb på gräset och bra abborrfiske från bryggorna.', scene: 'solnedgang' },
+	{ id: 'vasaparken', name: 'Vasaparken', lat: 59.6112, lng: 16.5478, kind: 'Park', text: 'Mitt i stan. Brännboll, picknick och folk som säger hej.', scene: 'kubb' },
+	{ id: 'anundshog', name: 'Anundshög', lat: 59.6316, lng: 16.6262, kind: 'Fornlämning', text: 'Sveriges största gravhög, skeppssättningar och runsten. Fint för söndagspromenader.', scene: 'fika' },
+	{ id: 'halla', name: 'Hälla', lat: 59.6178, lng: 16.6115, kind: 'Område', text: 'Butiker och verkstäder. Härifrån utgår många garagekvällar.', scene: 'garage' },
+	{ id: 'djakneberget', name: 'Djäkneberget', lat: 59.6138, lng: 16.5355, kind: 'Park och utsikt', text: 'Klippor, inskriptioner och grillplats med utsikt över stan.', scene: 'bal' },
+	{ id: 'kokpunkten', name: 'Kokpunkten-backen', lat: 59.6072, lng: 16.5598, kind: 'Pulkabacke', text: 'Den lilla backen vid Kokpunkten. Pulka när det finns snö, fika när det inte gör det.', scene: 'pulka' }
 ];
 
 export const placeById = (id: string) => places.find((p) => p.id === id);
