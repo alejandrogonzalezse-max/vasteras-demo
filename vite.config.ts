@@ -3,6 +3,9 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	define: {
+		__BUILD_TIME__: JSON.stringify(Date.now())
+	},
 	plugins: [
 		sveltekit({
 			compilerOptions: {

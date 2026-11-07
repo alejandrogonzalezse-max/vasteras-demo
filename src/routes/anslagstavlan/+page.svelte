@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { agoLabel } from '#lib/time.ts';
 	import { tick } from 'svelte';
 	import { SITE_NAME, ME_ID } from '#lib/config.ts';
 	import { afterNattbad, groups, places, type Visibility } from '#lib/mock.ts';
@@ -157,7 +158,7 @@
 					<li class="gb">
 						<Avatar id={c.by} size={32} />
 						<div>
-							<p class="small gb-head"><UserLink id={c.by} /> <span class="muted">· {c.ago}</span></p>
+							<p class="small gb-head"><UserLink id={c.by} /> <span class="muted">· {agoLabel(c.ago, demo.now)}</span></p>
 							<p class="gb-text">{c.text}</p>
 						</div>
 					</li>

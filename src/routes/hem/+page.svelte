@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { agoLabel, isDark, parts } from '#lib/time.ts';
+	import { weather } from '#lib/weather.svelte.ts';
 	import { ME_ID, SITE_NAME } from '#lib/config.ts';
 	import { diary, friendRequest, myFriends, userById } from '#lib/mock.ts';
 	import { demo, nowLabel } from '#lib/state.svelte.ts';
@@ -55,14 +57,23 @@
 			.sort((a, b) => (a.presence === b.presence ? 0 : a.presence === 'on' ? -1 : 1))
 	);
 
-	const season = $derived(demo.season);
-	const weatherIcon = $derived({ regn: 'rain', snö: 'snow', sol: 'sun', moln: 'cloud' }[season.weather]);
+	const season = $derived(demo.today);
+	const weatherIcon = $derived(
+		season.weather === 'sol' && isDark(demo.now, season.sunset)
+			? 'moon'
+			: { regn: 'rain', snö: 'snow', sol: 'sun', moln: 'cloud' }[season.weather]
+	);
 
 	function saveMsn(e: SubmitEvent) {
 		e.preventDefault();
 		demo.d.msn = msnDraft.slice(0, 80);
 		msnSaved = true;
 		setTimeout(() => (msnSaved = false), 2500);
+	}
+
+	function greeting(now: number) {
+		const h = parts(now).h;
+		return h < 5 ? 'God natt' : h < 10 ? 'God morgon' : h < 17 ? 'Hej' : 'God kväll';
 	}
 
 	function toggleSchysst(id: string) {
@@ -73,8 +84,8 @@
 <svelte:head><title>Hem – {SITE_NAME}</title></svelte:head>
 
 <div class="page-head">
-	<h1>Hej Gubben940!</h1>
-	<p>Klockan är <span class="num">{nowLabel(demo.now)}</span> <span class="xs">(demotid)</span>. Vad sägs om att hitta på något i stället för att scrolla?</p>
+	<h1>{greeting(demo.now)}, Gubben940!</h1>
+	<p>Klockan är <span class="num">{nowLabel(demo.now)}</span> . Vad sägs om att hitta på något i stället för att scrolla?</p>
 </div>
 
 <div class="grid-main">
@@ -128,7 +139,7 @@
 					<li class="post">
 						<Avatar id={post.by} size={44} />
 						<div class="post-body">
-							<p class="post-head small"><UserLink id={post.by} /> <span class="muted">· {post.ago}</span></p>
+							<p class="post-head small"><UserLink id={post.by} /> <span class="muted">· {agoLabel(post.ago, demo.now)}</span></p>
 							<p class="post-text">{post.text}</p>
 							{#if post.photo}
 								<div class="post-photo"><Photo caption={post.photo.caption} scene={post.photo.scene} /></div>
@@ -209,11 +220,17 @@
 		</Box>
 
 		<Box title="Västerås idag" icon={weatherIcon}>
-			<p class="today-date small">{season.dateText}</p>
-			<p class="today-temp"><span class="num big">{season.temp}°</span> <span>{season.weatherText}</span></p>
+			<p class="today-date small">{season.dateText}{season.holidayText ? ` · ${season.holidayText}` : ''}</p>
+			<p class="today-temp" data-testid="today-weather"><span class="num big">{season.temp}°</span> <span>{season.weatherText}</span></p>
 			<p class="small">Solen går ner <span class="num">{season.sunset}</span>.</p>
 			<p class="small"><strong class="num">{spontaneous.length}</strong> saker händer de närmaste sex timmarna.</p>
-			<p class="xs muted">Vädret är ett exempel – i demon är det påhittat.</p>
+			{#if season.source === 'smhi'}
+				<p class="xs muted">Källa: <a href="https://www.smhi.se/vader/prognoser/ortsprognoser" rel="noopener">SMHI</a>, prognos för Västerås.</p>
+			{:else if weather.status === 'done'}
+				<p class="xs muted">Vädret är ett exempel – SMHI gick inte att nå just nu.</p>
+			{:else}
+				<p class="xs muted">Hämtar väder från SMHI…</p>
+			{/if}
 		</Box>
 	</aside>
 </div>

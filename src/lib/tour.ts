@@ -11,7 +11,7 @@ export const TOUR: TourStep[] = [
 		path: '/hem',
 		target: '#tarningen',
 		title: 'Tärningen',
-		text: 'Vet du inte vad du ska hitta på? Slå tärningen. Den väljer bland 68 idéer och väger in årstid, väder och högtid. Byt "Demo-säsong" så ser du skillnaden.'
+		text: 'Vet du inte vad du ska hitta på? Slå tärningen. Den väljer bland 68 idéer och väger in årstid, väder och högtid. Testa en annan årstid så ser du skillnaden.'
 	},
 	{
 		path: '/hem',

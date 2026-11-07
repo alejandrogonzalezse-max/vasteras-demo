@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { agoLabel } from '#lib/time.ts';
 	import { SITE_NAME } from '#lib/config.ts';
 	import { demo } from '#lib/state.svelte.ts';
 	import Pager from '#lib/components/Pager.svelte';
@@ -26,7 +27,7 @@
 			<span><a href={`/forum/trad/${t.id}`}><strong>{t.title}</strong></a><br /><span class="xs">av <UserLink id={t.by} /></span></span>
 			<span class="c num"><span class="lbl">Svar:&nbsp;</span>{t.posts.length - 1 + (demo.d.forumReplies[t.id]?.length ?? 0)}</span>
 			<span class="c num"><span class="lbl">Visningar:&nbsp;</span>{t.views}</span>
-			<span class="xs muted">{t.last}</span>
+			<span class="xs muted">{agoLabel(t.posts[t.posts.length - 1].ago, demo.now)}</span>
 		</div>
 	{/each}
 </div>

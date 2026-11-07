@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { agoLabel } from '#lib/time.ts';
 	import { SITE_NAME } from '#lib/config.ts';
 	import { modLog, modQueue, type QueueItem } from '#lib/mock.ts';
 	import { demo } from '#lib/state.svelte.ts';
@@ -87,7 +88,7 @@
 			<ul class="plain log">
 				{#each log as l, i (i)}
 					<li>
-						<span class="xs muted num">{l.when}</span>
+						<span class="xs muted num">{agoLabel(l.when, demo.now)}</span>
 						<span class="small">{l.text} <span class="muted">/ {l.mod}</span></span>
 					</li>
 				{/each}

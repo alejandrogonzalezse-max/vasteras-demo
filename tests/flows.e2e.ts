@@ -92,7 +92,7 @@ test('demo-säsong ändrar tärningens viktning', async ({ page }) => {
 	await page.getByText('Så funkar tärningen').click();
 	const chances = page.locator('.chances');
 	const nov = await chances.textContent();
-	await page.getByLabel(/Demo-säsong/).selectOption('dec');
+	await page.getByLabel(/annan årstid/).selectOption('dec');
 	await expect(page.getByText('lätt snöfall').first()).toBeVisible();
 	await expect(chances).not.toHaveText(nov!);
 	await expect(chances).toContainText(/lussefika|Pulka|snögubb|Pepparkaks/i);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { agoLabel } from '#lib/time.ts';
 	import { ME_ID } from '#lib/config.ts';
 	import { groups, userById, type Activity } from '#lib/mock.ts';
 	import { demo, whenLabel } from '#lib/state.svelte.ts';
@@ -32,7 +33,7 @@
 			? a.attendees
 					.filter((id) => id !== a.by && id !== ME_ID)
 					.slice(0, 3)
-					.map((by, i, list) => ({ by, ago: `${(list.length - i) * 17} min sedan`, text: LINES[(a.id.length + i * 2) % LINES.length] }))
+					.map((by, i, list) => ({ by, ago: (list.length - i) * 17, text: LINES[(a.id.length + i * 2) % LINES.length] }))
 			: []
 	);
 	const mine = $derived(demo.d.lappComments[a.id] ?? []);
@@ -57,7 +58,7 @@
 		return t.replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n');
 	}
 
-	/** Skapar en .ics-fil för lappen (demotid) och laddar ner den. */
+	/** Skapar en .ics-fil för lappen och laddar ner den. */
 	function addToCalendar() {
 		const start = new Date(demo.now + mins * 60000);
 		start.setMinutes(Math.round(start.getMinutes() / 15) * 15, 0, 0);
@@ -153,7 +154,7 @@
 						{#each thread as c, i (i)}
 							<li>
 								<Avatar id={c.by} size={28} />
-								<p><UserLink id={c.by} /> <span class="xs muted">{c.ago}</span><br />{c.text}</p>
+								<p><UserLink id={c.by} /> <span class="xs muted">{agoLabel(c.ago, demo.now)}</span><br />{c.text}</p>
 							</li>
 						{/each}
 					</ul>

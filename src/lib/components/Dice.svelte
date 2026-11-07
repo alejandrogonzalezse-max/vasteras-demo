@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { roll, topChances, type Weighted } from '#lib/dice.ts';
 	import { ideas, seasonPresets, type Activity } from '#lib/mock.ts';
+	import { isDark } from '#lib/time.ts';
 	import { demo, whenLabel } from '#lib/state.svelte.ts';
 	import Box from './Box.svelte';
 	import Icon from './Icon.svelte';
@@ -18,7 +19,9 @@
 	const ctx = $derived(demo.season);
 	const chances = $derived(topChances(ideas, ctx, 6));
 	const weatherIcon = $derived(
-		{ regn: 'rain', snö: 'snow', sol: 'sun', moln: 'cloud' }[ctx.weather]
+		ctx.weather === 'sol' && ctx.id === 'idag' && isDark(demo.now, ctx.sunset)
+			? 'moon'
+			: { regn: 'rain', snö: 'snow', sol: 'sun', moln: 'cloud' }[ctx.weather]
 	);
 
 	const PIPS: Record<number, number[]> = {
@@ -94,8 +97,9 @@
 <Box title="Tärningen" icon="dice" id="tarningen">
 	{#snippet extra()}
 		<label class="season">
-			<span>Demo-säsong</span>
+			<span>Testa en annan årstid</span>
 			<select bind:value={demo.d.seasonId} onchange={() => (result = null)}>
+				<option value="idag">Idag</option>
 				{#each seasonPresets as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
 			</select>
 		</label>
@@ -104,7 +108,11 @@
 	<p class="ctx small">
 		<Icon name={weatherIcon} size={14} />
 		<span>{ctx.dateText} · <span class="num">{ctx.temp}°</span> · {ctx.weatherText}{ctx.holidayText ? ` · ${ctx.holidayText}` : ''}</span>
-		<span class="tag warn">påhittat väder</span>
+		{#if ctx.source === 'smhi'}
+			<span class="tag" data-testid="wx-source">Källa: SMHI</span>
+		{:else}
+			<span class="tag warn" data-testid="wx-source">exempel</span>
+		{/if}
 	</p>
 
 	<div class="dice-row">

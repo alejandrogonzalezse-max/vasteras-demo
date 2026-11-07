@@ -2,12 +2,15 @@
 // tillbaka till minnet om lagringen inte går att använda (t.ex. privat läge).
 
 import { ME_ID, STORAGE_KEY, THEME_KEY } from './config.ts';
+import { buildActivities } from './schedule.ts';
+import { clock, dateText, holidayOf, seasonOf, sunset, whenLabel, type Ago } from './time.ts';
+import { fallbackWeather, loadWeather, weather } from './weather.svelte.ts';
 import {
-	activities,
 	myFriends,
 	userById,
 	type DiaryPost,
 	seasonPresets,
+	type SeasonPreset,
 	type Activity,
 	type ForumPost,
 	type QueueItem,
@@ -16,14 +19,17 @@ import {
 
 export type ProfileTheme = 'klassisk' | 'solnedgang' | 'granskog';
 
+export { whenLabel };
+export const nowLabel = clock;
+
 export interface GuestEntry {
 	by: string;
-	ago: string;
+	ago: Ago;
 	text: string;
 }
 
 export interface LogEntry {
-	when: string;
+	when: Ago;
 	text: string;
 	mod: string;
 }
@@ -74,7 +80,7 @@ export interface Toast {
 function defaults(): DemoData {
 	return {
 		loggedIn: false,
-		seasonId: seasonPresets[0].id,
+		seasonId: 'idag',
 		msn: 'Har kaffe på. Någon som vill gå runt Djäkneberget?',
 		friendRequest: null,
 		attending: {},
@@ -99,16 +105,9 @@ function defaults(): DemoData {
 	};
 }
 
-/**
- * Demons klocka: alltid lördag 16:40 den här veckan, så att lapparna hamnar på
- * rimliga tider oavsett när någon tittar. (Den riktiga sajten använder riktig tid.)
- */
-export function demoNow(real = Date.now()) {
-	const d = new Date(real);
-	const day = d.getDay();
-	const offset = day === 0 ? -1 : 6 - day;
-	return new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset, 16, 40).getTime();
-}
+// Samma starttid vid förrendering och första renderingen i webbläsaren, så att
+// hydreringen stämmer. Sedan byts den mot riktig tid (se load()).
+const BUILD_NOW = typeof __BUILD_TIME__ === 'number' ? __BUILD_TIME__ : Date.UTC(2026, 10, 7, 16, 0);
 
 class Demo {
 	d = $state<DemoData>(defaults());
@@ -116,7 +115,10 @@ class Demo {
 	ready = $state(false);
 	/** true om lagring inte gick – då sparas allt bara i minnet. */
 	memoryOnly = $state(false);
-	now = $state(demoNow());
+	now = $state(BUILD_NOW);
+	/** När sidan öppnades – spontana förslag räknas därifrån. */
+	anchor = $state(BUILD_NOW);
+	#ticker: ReturnType<typeof setInterval> | undefined;
 	toasts = $state<Toast[]>([]);
 	#toastId = 0;
 	#timers: ReturnType<typeof setTimeout>[] = [];
@@ -179,8 +181,12 @@ class Demo {
 		} catch {
 			this.memoryOnly = true;
 		}
-		this.now = demoNow();
+		this.now = Date.now();
+		this.anchor = this.now;
 		this.ready = true;
+		clearInterval(this.#ticker);
+		this.#ticker = setInterval(() => (this.now = Date.now()), 30000);
+		loadWeather(this.now);
 	}
 
 	save() {
@@ -206,13 +212,35 @@ class Demo {
 		}
 	}
 
-	get season() {
-		return seasonPresets.find((s) => s.id === this.d.seasonId) ?? seasonPresets[0];
+	/** Dagens läge i Västerås: riktigt datum, högtid, solnedgång och väder. */
+	get today(): SeasonPreset {
+		const wx = weather.current ?? fallbackWeather(this.now);
+		const h = holidayOf(this.now);
+		return {
+			id: 'idag',
+			label: 'Idag',
+			dateText: dateText(this.now),
+			season: seasonOf(this.now),
+			temp: wx.temp,
+			weather: wx.kind,
+			weatherText: wx.text,
+			holiday: h?.id ?? null,
+			holidayText: h?.text,
+			sunset: sunset(this.now) ?? '–',
+			source: wx.source
+		};
+	}
+
+	/** Det tärningen räknar med: idag, eller en annan årstid man vill testa. */
+	get season(): SeasonPreset {
+		if (this.d.seasonId === 'idag') return this.today;
+		const p = seasonPresets.find((s) => s.id === this.d.seasonId);
+		return p ? { ...p, source: 'exempel' } : this.today;
 	}
 
 	// ----- Lappar och "Jag kommer"
 	get allActivities(): Activity[] {
-		return [...this.d.myNotes, ...activities];
+		return [...this.d.myNotes, ...buildActivities(this.now, this.anchor)];
 	}
 
 	isAttending(a: Activity) {
@@ -294,33 +322,3 @@ class Demo {
 
 export const demo = new Demo();
 
-// ---------------------------------------------------------------- Tid
-
-const WEEKDAYS = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'];
-
-function pad(n: number) {
-	return String(n).padStart(2, '0');
-}
-
-/** "om 50 min · 14:30", "i dag 19:30", "i morgon 10:00", "lördag 14:00". */
-export function whenLabel(minutes: number, now: number): string {
-	const t = new Date(now + minutes * 60000);
-	t.setMinutes(Math.round(t.getMinutes() / 15) * 15, 0, 0);
-	const n = new Date(now);
-	const hm = `${pad(t.getHours())}:${pad(t.getMinutes())}`;
-	const dayDiff = Math.round(
-		(new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime() -
-			new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime()) /
-			86400000
-	);
-	if (minutes < 0) return `pågår sedan ${hm}`;
-	if (minutes < 180) return `om ${minutes < 60 ? minutes + ' min' : String(Math.round(minutes / 6) / 10).replace('.', ',') + ' tim'} · ${hm}`;
-	if (dayDiff === 0) return `i dag ${hm}`;
-	if (dayDiff === 1) return `i morgon ${hm}`;
-	return `${WEEKDAYS[t.getDay()]} ${hm}`;
-}
-
-export function nowLabel(now: number) {
-	const d = new Date(now);
-	return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}

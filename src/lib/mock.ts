@@ -1,17 +1,11 @@
+import type { Ago, HolidayId } from './time.ts';
+
 // All påhittad demodata bor här. Inga riktiga personer, inga riktiga foton.
 // Tider anges relativt "nu" (i minuter) så att demon alltid ser levande ut.
 
 export type Season = 'vinter' | 'vår' | 'sommar' | 'höst';
 export type Weather = 'sol' | 'moln' | 'regn' | 'snö';
-export type Holiday =
-	| 'allhelgona'
-	| 'lucia'
-	| 'jul'
-	| 'nyår'
-	| 'påsk'
-	| 'valborg'
-	| 'midsommar'
-	| 'kräftskiva';
+export type Holiday = HolidayId;
 export type Presence = 'on' | 'away' | 'off';
 
 // ---------------------------------------------------------------- Användare
@@ -344,14 +338,26 @@ export interface Activity {
 	text: string;
 }
 
-export const activities: Activity[] = [
+/** När en påhittad aktivitet äger rum, räknat från "nu" (se schedule.ts). */
+export type WhenSpec =
+	| { soon: number }
+	| { at: string; ahead?: number }
+	| { weekday: number; at: string };
+
+export type ActivitySpec = Omit<Activity, 'startIn'> & {
+	when: WhenSpec;
+	/** Byts ut beroende på årstid, så att innehållet alltid passar. */
+	seasonal?: Partial<Record<Season, Partial<Activity>>>;
+};
+
+export const activitySpecs: ActivitySpec[] = [
 	{
 		id: 'a-bradspel',
 		title: 'Brädspel och te på biblioteket',
 		place: 'Stadsbiblioteket, studierummet',
 		lat: 59.6105,
 		lng: 16.5465,
-		startIn: 95,
+		when: { at: '19:00' },
 		bring: 'Ett spel om du har, annars lånar vi',
 		by: 'johanna-v',
 		visibility: 'alla',
@@ -367,7 +373,7 @@ export const activities: Activity[] = [
 		placeId: 'djakneberget',
 		lat: 59.6142,
 		lng: 16.5349,
-		startIn: 50,
+		when: { soon: 50 },
 		bring: 'Pannlampa eller ficklampa, termos',
 		by: 'gubben940',
 		visibility: 'alla',
@@ -383,23 +389,24 @@ export const activities: Activity[] = [
 		placeId: 'framnas',
 		lat: 59.5979,
 		lng: 16.575,
-		startIn: 290,
+		when: { at: '21:30' },
 		bring: 'Handduk, badmössa, något varmt att dricka',
 		by: 'sannas',
 		visibility: 'alla',
 		recurring: true,
 		attendees: ['sannas', 'elinb', 'sofia-bjurhovda', 'johanna-v', 'linnea-l', 'matteok'],
 		comments: 9,
-		text: 'Doppa så kort eller länge du vill – ingen tävling. Vi är alltid minst två i vattnet samtidigt.'
+		text: 'Doppa så kort eller länge du vill – ingen tävling. Vi är alltid minst två i vattnet samtidigt.',
+		seasonal: { sommar: { title: 'Kvällsdopp och bastu', text: 'Mälaren är som varmast nu. Vi badar alltid minst två samtidigt.' } }
 	},
 	{
 		id: 'a-grill',
-		title: 'Korvgrillning i duggregnet',
+		title: 'Korvgrillning vid vindskyddet',
 		place: 'Björnö, vindskyddet vid Ängsviken',
 		placeId: 'bjorno',
 		lat: 59.5531,
 		lng: 16.6372,
-		startIn: 1500,
+		when: { weekday: 6, at: '17:00' },
 		bring: 'Egen korv och dricka. Ved finns.',
 		by: 'backby-pelle',
 		visibility: 'alla',
@@ -410,19 +417,20 @@ export const activities: Activity[] = [
 	},
 	{
 		id: 'a-brannboll',
-		title: 'Höstbrännboll (om det är torrt)',
+		title: 'Brännboll i Vasaparken (om det är torrt)',
 		place: 'Vasaparken, stora gräsmattan',
 		placeId: 'vasaparken',
 		lat: 59.6115,
 		lng: 16.5486,
-		startIn: 1280,
+		when: { weekday: 0, at: '14:00' },
 		bring: 'Vantar. Slagträ och boll finns.',
 		by: 'matteok',
 		visibility: 'alla',
 		recurring: true,
 		attendees: ['matteok', 'hampus-o', 'elinb', 'johanna-v', 'erik-pa-raby', 'sannas', 'fotofredrik'],
 		comments: 12,
-		text: 'Lag lottas på plats. Ingen behöver kunna reglerna, vi lär oss under tiden.'
+		text: 'Lag lottas på plats. Ingen behöver kunna reglerna, vi lär oss under tiden.',
+		seasonal: { vinter: { title: 'Pulka och snöbollskrig (om det finns snö)', place: 'Kokpunkten-backen', placeId: 'kokpunkten', lat: 59.6072, lng: 16.5598, bring: 'Pulka, vantar och varm choklad', text: 'Ingen snö? Då blir det fika i backen i stället.' } }
 	},
 	{
 		id: 'a-fiske',
@@ -431,7 +439,7 @@ export const activities: Activity[] = [
 		placeId: 'lovudden',
 		lat: 59.5881,
 		lng: 16.4972,
-		startIn: 1020,
+		when: { at: '07:00', ahead: 180 },
 		bring: 'Varma kläder. Spö finns att låna.',
 		by: 'nisse-irsta',
 		visibility: 'grupp',
@@ -448,7 +456,7 @@ export const activities: Activity[] = [
 		placeId: 'anundshog',
 		lat: 59.6309,
 		lng: 16.6248,
-		startIn: 1220,
+		when: { weekday: 0, at: '13:00' },
 		bring: 'Fika att dela',
 		by: 'gubben940',
 		visibility: 'grupp',
@@ -464,7 +472,7 @@ export const activities: Activity[] = [
 		place: 'Svartån, vid Turbinbron',
 		lat: 59.6125,
 		lng: 16.5418,
-		startIn: 200,
+		when: { soon: 200 },
 		bring: 'Reflexväst',
 		by: 'elinb',
 		visibility: 'vänner',
@@ -490,8 +498,8 @@ export interface OpenDoor {
 }
 
 export const openDoors: OpenDoor[] = [
-	{ id: 'od-garage', title: 'Öppet garage – däckbyte och kaffe', host: 'mopedmia', area: 'Pettersberg', lat: 59.6265, lng: 16.5655, radius: 650, when: 'Lördag 10–15', text: 'Kom och lär dig byta däck själv. Domkraft och kaffe finns.' },
-	{ id: 'od-vinyl', title: 'Vinylkväll i vardagsrummet', host: 'backby-pelle', area: 'Bäckby', lat: 59.6285, lng: 16.4895, radius: 700, when: 'Lördag 19–23', text: 'Ta med en skiva du skäms över. Max åtta personer.' },
+	{ id: 'od-garage', title: 'Öppet garage – däckbyte och kaffe', host: 'mopedmia', area: 'Pettersberg', lat: 59.6265, lng: 16.5655, radius: 650, when: 'Lördagar 10–15', text: 'Kom och lär dig byta däck själv. Domkraft och kaffe finns.' },
+	{ id: 'od-vinyl', title: 'Vinylkväll i vardagsrummet', host: 'backby-pelle', area: 'Bäckby', lat: 59.6285, lng: 16.4895, radius: 700, when: 'Lördagar 19–23', text: 'Ta med en skiva du skäms över. Max åtta personer.' },
 	{ id: 'od-korsord', title: 'Kaffe och korsord på altanen', host: 'kicki61', area: 'Vallby', lat: 59.6205, lng: 16.5105, radius: 600, when: 'Varje tisdag 14–16', text: 'Korsordet i lokaltidningen löses tillsammans. Kakor ingår.' },
 	{ id: 'od-syjunta', title: 'Syjunta – laga och sy om', host: 'linnea-l', area: 'Kristiansborg', lat: 59.6045, lng: 16.5265, radius: 550, when: 'Onsdag 18–21', text: 'Ta med plagg som behöver lagas. Två symaskiner finns.' }
 ];
@@ -528,7 +536,7 @@ export const ideas: Idea[] = [
 	{ id: 'i10', text: 'Kvällspromenad bland gravljusen på kyrkogården', place: 'Närmaste kyrkogård', bring: 'Ett eget ljus', holidays: ['allhelgona'], rainOk: true },
 	{ id: 'i11', text: 'Urholka pumpor och tänd dem på trappen', place: 'Hemma hos någon', bring: 'En pumpa och en kniv', holidays: ['allhelgona'], indoor: true },
 	{ id: 'i12', text: 'Lussefika med hembakade lussekatter', place: 'Hemma hos någon', bring: 'Saffran eller pepparkakor', holidays: ['lucia'], indoor: true },
-	{ id: 'i13', text: 'Pepparkaksbak och glöggsnack', place: 'Ett stort kök', bring: 'Kavel och forminar', seasons: ['vinter'], holidays: ['jul', 'lucia'], indoor: true },
+	{ id: 'i13', text: 'Pepparkaksbak och glöggsnack', place: 'Ett stort kök', bring: 'Kavel och forminar', seasons: ['höst', 'vinter'], holidays: ['jul', 'lucia', 'advent'], indoor: true },
 	{ id: 'i14', text: 'Sjunga julsånger utomhus i Vasaparken', place: 'Vasaparken', bring: 'Varm dryck och sånghäfte', holidays: ['jul'] },
 	{ id: 'i15', text: 'Titta på nyårsfyrverkerierna från Djäkneberget', place: 'Djäkneberget', bring: 'Termos och filt', holidays: ['nyår'] },
 	{ id: 'i16', text: 'Valborgsbrasa och vårsång', place: 'Den officiella brasan', bring: 'Varma kläder', holidays: ['valborg'] },
@@ -571,7 +579,7 @@ export const ideas: Idea[] = [
 	{ id: 'i53', text: 'Fotopromenad med gamla kameror', place: 'Centrum', bring: 'Kamera eller mobil', seasons: ALL, rainOk: true },
 	{ id: 'i54', text: 'Bokcirkel med en tunn bok', place: 'Biblioteket', bring: 'Boken', seasons: ALL, indoor: true },
 	{ id: 'i55', text: 'Skissa i parken', place: 'Vasaparken', bring: 'Block och penna', seasons: ['sommar'], minTemp: 14 },
-	{ id: 'i56', text: 'Pyssla adventsljusstakar', place: 'Ett stort bord', bring: 'Mossa och ljus', seasons: ['vinter'], holidays: ['jul'], indoor: true },
+	{ id: 'i56', text: 'Pyssla adventsljusstakar', place: 'Ett stort bord', bring: 'Mossa och ljus', seasons: ['höst', 'vinter'], holidays: ['jul', 'advent'], indoor: true },
 	{ id: 'i57', text: 'Hjälp en granne att kratta löv', place: 'Någons trädgård', bring: 'Kratta', seasons: ['höst'] },
 	{ id: 'i58', text: 'Schack i parken', place: 'Vasaparken', bring: 'Schackbräde', seasons: ['sommar'], minTemp: 14 },
 	{ id: 'i59', text: 'Leta vitsippor', place: 'Björnö', bring: 'Kamera', seasons: ['vår'] },
@@ -597,6 +605,8 @@ export interface SeasonPreset {
 	holiday: Holiday | null;
 	holidayText?: string;
 	sunset: string;
+	/** smhi = riktigt väder, exempel = påhittat */
+	source?: 'smhi' | 'exempel';
 }
 
 export const seasonPresets: SeasonPreset[] = [
@@ -613,27 +623,27 @@ export const seasonPresets: SeasonPreset[] = [
 export interface DiaryPost {
 	id: string;
 	by: string;
-	ago: string;
+	ago: Ago;
 	text: string;
 	photo?: { caption: string; scene: string };
 	schysst: number;
 }
 
 export const diary: DiaryPost[] = [
-	{ id: 'd1', by: 'sannas', ago: '23 min sedan', text: 'Fyra grader i vattnet vid Framnäs i morse. Jag skrek lite. Sedan bastu. Livet är bra.', photo: { caption: 'Bryggan vid Framnäs i går kväll', scene: 'brygga' }, schysst: 14 },
-	{ id: 'd2', by: 'gubben940', ago: '1 tim sedan', text: 'Tack alla som kom på grillningen i lördags! Sju nya ansikten. Pelle hade med sig senap från 1987 (skämt, tror jag).', photo: { caption: 'Elden när de sista gått hem', scene: 'bal' }, schysst: 21 },
-	{ id: 'd3', by: 'linnea-l', ago: '2 tim sedan', text: 'Hittade ett vykort från 1962 på loppis med Stadshuset på. Någon skrev "Vädret är fint, maten är god, Sven är sur". Tidlöst.', schysst: 9 },
-	{ id: 'd4', by: 'mopedmia', ago: '3 tim sedan', text: 'Puchen startade på första kicken efter tre veckors mek. Erik, du är en legend som hade rätt packning.', photo: { caption: 'Puchen, redo för grusvägen', scene: 'moped' }, schysst: 17 },
-	{ id: 'd5', by: 'johanna-v', ago: 'i går', text: 'Elva personer på brädspelskvällen! Vi behöver fler bord. Och fler som kan reglerna till det långa spelet med fåren.', schysst: 12 },
-	{ id: 'd6', by: 'fotofredrik', ago: 'i går', text: 'Solnedgången från Lövudden i går. Inget filter, bara november som visar sig från sin bästa sida.', photo: { caption: 'Solnedgången från Lövudden', scene: 'solnedgang' }, schysst: 25 },
-	{ id: 'd7', by: 'backby-pelle', ago: '2 dagar sedan', text: 'Lånade ut fiskespöt till en kille från Tillberga som just flyttat hit. Han fick en abborre direkt. Nybörjartur heter det.', schysst: 8 },
-	{ id: 'd8', by: 'erik-pa-raby', ago: '3 dagar sedan', text: 'Sorterade garaget. Har tre cykelpumpar för mycket. Kom och ta en, jag bjuder på kaffe.', photo: { caption: 'Garaget, äntligen sorterat', scene: 'garage' }, schysst: 6 }
+	{ id: 'd1', by: 'sannas', ago: 23, text: 'Fyra grader i vattnet vid Framnäs i morse. Jag skrek lite. Sedan bastu. Livet är bra.', photo: { caption: 'Bryggan vid Framnäs i går kväll', scene: 'brygga' }, schysst: 14 },
+	{ id: 'd2', by: 'gubben940', ago: 62, text: 'Tack alla som kom på grillningen! Sju nya ansikten. Pelle hade med sig senap från 1987 (skämt, tror jag).', photo: { caption: 'Elden när de sista gått hem', scene: 'bal' }, schysst: 21 },
+	{ id: 'd3', by: 'linnea-l', ago: 128, text: 'Hittade ett vykort från 1962 på loppis med Stadshuset på. Någon skrev "Vädret är fint, maten är god, Sven är sur". Tidlöst.', schysst: 9 },
+	{ id: 'd4', by: 'mopedmia', ago: 190, text: 'Puchen startade på första kicken efter tre veckors mek. Erik, du är en legend som hade rätt packning.', photo: { caption: 'Puchen, redo för grusvägen', scene: 'moped' }, schysst: 17 },
+	{ id: 'd5', by: 'johanna-v', ago: 1340, text: 'Elva personer på brädspelskvällen! Vi behöver fler bord. Och fler som kan reglerna till det långa spelet med fåren.', schysst: 12 },
+	{ id: 'd6', by: 'fotofredrik', ago: 1490, text: 'Solnedgången från Lövudden. Inget filter, bara Mälaren som visar sig från sin bästa sida.', photo: { caption: 'Solnedgången från Lövudden', scene: 'solnedgang' }, schysst: 25 },
+	{ id: 'd7', by: 'backby-pelle', ago: 2900, text: 'Lånade ut fiskespöt till en kille från Tillberga som just flyttat hit. Han fick en abborre direkt. Nybörjartur heter det.', schysst: 8 },
+	{ id: 'd8', by: 'erik-pa-raby', ago: 4310, text: 'Sorterade garaget. Har tre cykelpumpar för mycket. Kom och ta en, jag bjuder på kaffe.', photo: { caption: 'Garaget, äntligen sorterat', scene: 'garage' }, schysst: 6 }
 ];
 
 // ---------------------------------------------------------------- Gästboken efteråt (nattbadet)
 
 export const afterNattbad = {
-	title: 'Nattbad vid Framnäs – i augusti',
+	title: 'Nattbad vid Framnäs – i somras',
 	text: 'Arton personer, en fullmåne och ett vatten på 19 grader. Här är bilder och hälsningar från kvällen.',
 	photos: [
 		{ caption: 'Månen över bryggan', scene: 'brygga' },
@@ -642,10 +652,10 @@ export const afterNattbad = {
 		{ caption: 'Solen gick ner kvart i nio', scene: 'solnedgang' }
 	],
 	comments: [
-		{ by: 'sannas', ago: 'aug', text: 'Bästa kvällen i somras. Tack till alla som höll koll på varandra i vattnet!' },
-		{ by: 'matteok', ago: 'aug', text: 'Jag som aldrig badat i Mälaren förut. Nu fattar jag grejen.' },
-		{ by: 'kicki61', ago: 'aug', text: 'Jag satt på bryggan med termosen och hade det minst lika trevligt.' },
-		{ by: 'elinb', ago: 'aug', text: 'Samma tid nästa år? Jag tar med kanelbullar.' }
+		{ by: 'sannas', ago: 'i somras', text: 'Bästa kvällen i somras. Tack till alla som höll koll på varandra i vattnet!' },
+		{ by: 'matteok', ago: 'i somras', text: 'Jag som aldrig badat i Mälaren förut. Nu fattar jag grejen.' },
+		{ by: 'kicki61', ago: 'i somras', text: 'Jag satt på bryggan med termosen och hade det minst lika trevligt.' },
+		{ by: 'elinb', ago: 'i somras', text: 'Samma tid nästa år? Jag tar med kanelbullar.' }
 	]
 };
 
@@ -689,7 +699,7 @@ export const forumCategories: ForumCategory[] = [
 
 export interface ForumPost {
 	by: string;
-	ago: string;
+	ago: Ago;
 	text: string;
 }
 
@@ -699,11 +709,10 @@ export interface ForumThread {
 	title: string;
 	by: string;
 	views: number;
-	last: string;
 	posts: ForumPost[];
 }
 
-const p = (by: string, ago: string, text: string): ForumPost => ({ by, ago, text });
+const p = (by: string, ago: Ago, text: string): ForumPost => ({ by, ago, text });
 
 export const forumThreads: ForumThread[] = [
 	{
@@ -712,35 +721,34 @@ export const forumThreads: ForumThread[] = [
 		title: 'Bästa stället för vinterbad i Västerås?',
 		by: 'sannas',
 		views: 1204,
-		last: 'i dag 09:12',
 		posts: [
-			p('sannas', '2 nov 18:02', 'Nu är det dags igen! Var badar ni när det börjar bli kallt på riktigt? Jag har kört Framnäs men funderar på något nytt.'),
-			p('elinb', '2 nov 18:20', 'Framnäs är svårslaget pga bastun. Men Lövudden har bättre stege.'),
-			p('nisse-irsta', '2 nov 19:01', 'Bada aldrig ensam, och kolla isen om det har frusit. Det är det enda tipset som spelar roll.'),
-			p('gubben940', '2 nov 19:45', 'Instämmer med Nisse. Och ta med något varmt att dricka, inte något starkt.'),
-			p('matteok', '3 nov 08:13', 'Som nybörjare: hur länge ska man vara i? Jag tänkte typ fem minuter.'),
-			p('sannas', '3 nov 08:30', 'Börja med 30 sekunder! Kroppen vänjer sig. Fem minuter är för mycket i början.'),
-			p('johanna-v', '3 nov 12:44', 'Jag har en badmössa i ull jag stickat. Rekommenderas starkt, man fryser mest om huvudet.'),
-			p('linnea-l', '3 nov 13:02', 'Johanna, kan du lära mig sticka en sådan? Jag byter mot en lagad jacka.'),
-			p('fotofredrik', '4 nov 07:55', 'Fotade soluppgången vid Framnäs i morse. Det var tre personer i vattnet redan 06:45. Imponerande.'),
-			p('kicki61', '4 nov 10:10', 'Jag badade i Mälaren varje vinter på 70-talet. Då fanns ingen bastu, bara en vedeldad tunna.'),
-			p('rut-rocklunda', '4 nov 15:30', 'Och man gick hem i blöta yllesockor. Det var inte bättre förr, Kicki.'),
-			p('erik-pa-raby', '5 nov 19:22', 'Några som vill köra en gemensam premiär på söndag? Jag kan sätta upp en lapp.'),
-			p('sannas', 'i dag 09:12', 'Erik: ja! Sätt upp en lapp så kommer jag.')
+			p('sannas', 6748, 'Nu är det dags igen! Var badar ni när det börjar bli kallt på riktigt? Jag har kört Framnäs men funderar på något nytt.'),
+			p('elinb', 6730, 'Framnäs är svårslaget pga bastun. Men Lövudden har bättre stege.'),
+			p('nisse-irsta', 6689, 'Bada aldrig ensam, och kolla isen om det har frusit. Det är det enda tipset som spelar roll.'),
+			p('gubben940', 6645, 'Instämmer med Nisse. Och ta med något varmt att dricka, inte något starkt.'),
+			p('matteok', 5897, 'Som nybörjare: hur länge ska man vara i? Jag tänkte typ fem minuter.'),
+			p('sannas', 5880, 'Börja med 30 sekunder! Kroppen vänjer sig. Fem minuter är för mycket i början.'),
+			p('johanna-v', 5626, 'Jag har en badmössa i ull jag stickat. Rekommenderas starkt, man fryser mest om huvudet.'),
+			p('linnea-l', 5608, 'Johanna, kan du lära mig sticka en sådan? Jag byter mot en lagad jacka.'),
+			p('fotofredrik', 4475, 'Fotade soluppgången vid Framnäs i morse. Det var tre personer i vattnet redan 06:45. Imponerande.'),
+			p('kicki61', 4340, 'Jag badade i Mälaren varje vinter på 70-talet. Då fanns ingen bastu, bara en vedeldad tunna.'),
+			p('rut-rocklunda', 4020, 'Och man gick hem i blöta yllesockor. Det var inte bättre förr, Kicki.'),
+			p('erik-pa-raby', 2348, 'Några som vill köra en gemensam premiär på söndag? Jag kan sätta upp en lapp.'),
+			p('sannas', 78, 'Erik: ja! Sätt upp en lapp så kommer jag.')
 		]
 	},
-	{ id: 'svamp', cat: 'natur', title: 'Trattkantareller kvar på Björnö?', by: 'linnea-l', views: 233, last: 'i går 21:40', posts: [p('linnea-l', '4 nov 10:00', 'Någon som hittat trattisar senaste veckan?'), p('backby-pelle', 'i går 21:40', 'Några stycken norr om parkeringen. Mer säger jag inte.')] },
-	{ id: 'stigar', cat: 'natur', title: 'Pannlampa eller ficklampa för kvällspromenader?', by: 'kicki61', views: 98, last: '3 nov', posts: [p('kicki61', '3 nov 17:00', 'Vad använder ni när det är mörkt redan fyra?'), p('gubben940', '3 nov 17:30', 'Pannlampa. Händerna fria för termosen.')] },
-	{ id: 'puch', cat: 'motor', title: 'Packning till gammal Puch – vem har?', by: 'mopedmia', views: 412, last: 'i dag 08:02', posts: [p('mopedmia', '1 nov 12:00', 'Letar topplockspackning. Byter mot hjälp med däckbyte.'), p('erik-pa-raby', '1 nov 13:12', 'Har en i förrådet! Kom förbi.'), p('mopedmia', 'i dag 08:02', 'Den passade. Tack!!')] },
-	{ id: 'vinterdack', cat: 'motor', title: 'Öppet garage på Pettersberg – däckbyte', by: 'mopedmia', views: 301, last: 'i går 14:15', posts: [p('mopedmia', '3 nov 09:00', 'Lördag 10–15. Lär dig byta själv, jag visar.'), p('tobbe-tillberga', 'i går 14:15', 'Kommer med min gamla Volvo!')] },
-	{ id: 'lan', cat: 'kultur', title: 'LAN som 2004 – vem är med?', by: 'hampus-o', views: 187, last: '4 nov', posts: [p('hampus-o', '2 nov 20:00', 'Har plats för sex datorer. Ta med egen sladd.'), p('matteok', '4 nov 11:11', 'Jag har en laptop från 2009, räknas det?')] },
-	{ id: 'konstmuseet', cat: 'kultur', title: 'Konstmuseet på lördag – sällskap?', by: 'sofia-bjurhovda', views: 76, last: 'i går', posts: [p('sofia-bjurhovda', 'i går 10:00', 'Går vid lunch, fika efteråt. Häng på!')] },
-	{ id: 'brannboll', cat: 'idrott', title: 'Brännbollsregler – vad gäller egentligen?', by: 'matteok', views: 655, last: 'i dag 07:30', posts: [p('matteok', '30 okt 19:00', 'Vi bråkade om "lyra". Vad gäller?'), p('hampus-o', '30 okt 19:20', 'Lyra = en poäng. Inget mer att säga.'), p('erik-pa-raby', 'i dag 07:30', 'Vi kör det enkelt: alla får slå, ingen behöver springa fort.')] },
-	{ id: 'loprunda', cat: 'idrott', title: 'Långsamma löpare i stan?', by: 'elinb', views: 142, last: '2 nov', posts: [p('elinb', '1 nov 18:00', 'Jag springer runt 7:30/km. Någon mer?'), p('sannas', '2 nov 09:00', 'Ja! Pratvänligt tempo är det enda tempot.')] },
-	{ id: 'symaskin', cat: 'kopsalj', title: 'Byter: symaskin mot cykel', by: 'linnea-l', views: 64, last: 'i går', posts: [p('linnea-l', '4 nov 12:00', 'Har en fungerande symaskin, vill ha en damcykel. Privat byte.')] },
-	{ id: 'pulkor', cat: 'kopsalj', title: 'Skänkes: två pulkor', by: 'kicki61', views: 58, last: '3 nov', posts: [p('kicki61', '3 nov 08:00', 'Barnbarnen har vuxit ur dem. Hämtas i Vallby.')] },
-	{ id: 'svartan', cat: 'snack', title: 'Vad hände med fiket vid Svartån?', by: 'rut-rocklunda', views: 820, last: 'i dag 10:01', posts: [p('rut-rocklunda', '1 nov 10:00', 'Det var öppet i 30 år. Vet någon något?'), p('linnea-l', 'i dag 10:01', 'Nya ägare enligt skylten. Öppnar i vår!')] },
-	{ id: 'gatlyktor', cat: 'snack', title: 'Mörkt på gångvägen vid Bäckby', by: 'backby-pelle', views: 311, last: 'i går', posts: [p('backby-pelle', '2 nov 17:00', 'Tre lyktor ur funktion. Felanmält till kommunen. Gör ni också så går det fortare.')] }
+	{ id: 'svamp', cat: 'natur', title: 'Trattkantareller kvar på Björnö?', by: 'linnea-l', views: 233, posts: [p('linnea-l', 4350, 'Någon som hittat trattisar senaste veckan?'), p('backby-pelle', 770, 'Några stycken norr om parkeringen. Mer säger jag inte.')] },
+	{ id: 'stigar', cat: 'natur', title: 'Pannlampa eller ficklampa för kvällspromenader?', by: 'kicki61', views: 98, posts: [p('kicki61', 5370, 'Vad använder ni när det är mörkt redan fyra?'), p('gubben940', 5340, 'Pannlampa. Händerna fria för termosen.')] },
+	{ id: 'puch', cat: 'motor', title: 'Packning till gammal Puch – vem har?', by: 'mopedmia', views: 412, posts: [p('mopedmia', 8550, 'Letar topplockspackning. Byter mot hjälp med däckbyte.'), p('erik-pa-raby', 8478, 'Har en i förrådet! Kom förbi.'), p('mopedmia', 148, 'Den passade. Tack!!')] },
+	{ id: 'vinterdack', cat: 'motor', title: 'Öppet garage på Pettersberg – däckbyte', by: 'mopedmia', views: 301, posts: [p('mopedmia', 5850, 'Lördag 10–15. Lär dig byta själv, jag visar.'), p('tobbe-tillberga', 1215, 'Kommer med min gamla Volvo!')] },
+	{ id: 'lan', cat: 'kultur', title: 'LAN som 2004 – vem är med?', by: 'hampus-o', views: 187, posts: [p('hampus-o', 6630, 'Har plats för sex datorer. Ta med egen sladd.'), p('matteok', 4279, 'Jag har en laptop från 2009, räknas det?')] },
+	{ id: 'konstmuseet', cat: 'kultur', title: 'Konstmuseet på lördag – sällskap?', by: 'sofia-bjurhovda', views: 76, posts: [p('sofia-bjurhovda', 1470, 'Går vid lunch, fika efteråt. Häng på!')] },
+	{ id: 'brannboll', cat: 'idrott', title: 'Brännbollsregler – vad gäller egentligen?', by: 'matteok', views: 655, posts: [p('matteok', 11010, 'Vi bråkade om "lyra". Vad gäller?'), p('hampus-o', 10990, 'Lyra = en poäng. Inget mer att säga.'), p('erik-pa-raby', 180, 'Vi kör det enkelt: alla får slå, ingen behöver springa fort.')] },
+	{ id: 'loprunda', cat: 'idrott', title: 'Långsamma löpare i stan?', by: 'elinb', views: 142, posts: [p('elinb', 8190, 'Jag springer runt 7:30/km. Någon mer?'), p('sannas', 7290, 'Ja! Pratvänligt tempo är det enda tempot.')] },
+	{ id: 'symaskin', cat: 'kopsalj', title: 'Byter: symaskin mot cykel', by: 'linnea-l', views: 64, posts: [p('linnea-l', 4230, 'Har en fungerande symaskin, vill ha en damcykel. Privat byte.')] },
+	{ id: 'pulkor', cat: 'kopsalj', title: 'Skänkes: två pulkor', by: 'kicki61', views: 58, posts: [p('kicki61', 5910, 'Barnbarnen har vuxit ur dem. Hämtas i Vallby.')] },
+	{ id: 'svartan', cat: 'snack', title: 'Vad hände med fiket vid Svartån?', by: 'rut-rocklunda', views: 820, posts: [p('rut-rocklunda', 8670, 'Det var öppet i 30 år. Vet någon något?'), p('linnea-l', 29, 'Nya ägare enligt skylten. Öppnar i vår!')] },
+	{ id: 'gatlyktor', cat: 'snack', title: 'Mörkt på gångvägen vid Bäckby', by: 'backby-pelle', views: 311, posts: [p('backby-pelle', 6810, 'Tre lyktor ur funktion. Felanmält till kommunen. Gör ni också så går det fortare.')] }
 ];
 
 // ---------------------------------------------------------------- Utforska & Hett
@@ -768,12 +776,12 @@ export const openPhotos = [
 
 // ---------------------------------------------------------------- Gästböcker på profiler
 
-export const guestbooks: Record<string, { by: string; ago: string; text: string }[]> = {
+export const guestbooks: Record<string, { by: string; ago: Ago; text: string }[]> = {
 	gubben940: [
-		{ by: 'matteok', ago: 'i går 22:14', text: 'Tack för grillningen! Ses på brännbollen?' },
-		{ by: 'kicki61', ago: '3 nov', text: 'Kul att gå med dig runt berget. Ta med den där goda kakan nästa gång.' },
-		{ by: 'erik-pa-raby', ago: '1 nov', text: 'Cykelpumpen är din om du vill ha den. Kram från Råby' },
-		{ by: 'linnea-l', ago: '28 okt', text: 'Har ett vykort på Skiljebo från 1958 – ska jag ta med det på söndag?' }
+		{ by: 'matteok', ago: 736, text: 'Tack för grillningen! Ses på brännbollen?' },
+		{ by: 'kicki61', ago: 5670, text: 'Kul att gå med dig runt berget. Ta med den där goda kakan nästa gång.' },
+		{ by: 'erik-pa-raby', ago: 8550, text: 'Cykelpumpen är din om du vill ha den. Kram från Råby' },
+		{ by: 'linnea-l', ago: 14310, text: 'Har ett vykort på Skiljebo från 1958 – ska jag ta med det på söndag?' }
 	]
 };
 
@@ -781,8 +789,8 @@ export const defaultGuestbook = (id: string) => {
 	const u = userById(id);
 	const f = u?.topFriends ?? [];
 	return [
-		{ by: f[0] ?? 'gubben940', ago: 'i går', text: 'Kul att ses sist! Hörs snart.' },
-		{ by: f[1] ?? 'sannas', ago: '3 nov', text: 'Tack för senast, du är bäst.' }
+		{ by: f[0] ?? 'gubben940', ago: 930, text: 'Kul att ses sist! Hörs snart.' },
+		{ by: f[1] ?? 'sannas', ago: 5670, text: 'Tack för senast, du är bäst.' }
 	];
 };
 
@@ -872,13 +880,13 @@ export const modQueue: QueueItem[] = [
 ];
 
 export const modLog = [
-	{ when: 'i dag 10:42', text: 'Inlägg borttaget – reklam', mod: 'Mod Anna' },
-	{ when: 'i dag 08:15', text: 'Plats godkänd – Vindskyddet på Björnö', mod: 'Mod Anna' },
-	{ when: 'i går 21:03', text: 'Kommentar borttagen – personangrepp', mod: 'Mod Jonas' },
-	{ when: 'i går 17:40', text: 'Tråd flyttad – från Idrott till Ute i naturen', mod: 'Mod Jonas' },
-	{ when: '4 nov 19:12', text: 'Inlägg borttaget – riksnyhet', mod: 'Mod Anna' },
-	{ when: '4 nov 11:30', text: 'Överklagan beviljad – inlägget återställt', mod: 'Mod Leila' },
-	{ when: '3 nov 22:05', text: 'Bild borttagen – person i bild utan lov', mod: 'Mod Leila' }
+	{ when: -12, text: 'Inlägg borttaget – reklam', mod: 'Mod Anna' },
+	{ when: 135, text: 'Plats godkänd – Vindskyddet på Björnö', mod: 'Mod Anna' },
+	{ when: 807, text: 'Kommentar borttagen – personangrepp', mod: 'Mod Jonas' },
+	{ when: 1010, text: 'Tråd flyttad – från Idrott till Ute i naturen', mod: 'Mod Jonas' },
+	{ when: 3798, text: 'Inlägg borttaget – riksnyhet', mod: 'Mod Anna' },
+	{ when: 4260, text: 'Överklagan beviljad – inlägget återställt', mod: 'Mod Leila' },
+	{ when: 5065, text: 'Bild borttagen – person i bild utan lov', mod: 'Mod Leila' }
 ];
 
 // ---------------------------------------------------------------- Ordningsregler

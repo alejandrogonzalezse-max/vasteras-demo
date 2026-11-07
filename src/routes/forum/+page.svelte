@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { agoLabel } from '#lib/time.ts';
+	import { demo } from '#lib/state.svelte.ts';
 	import { SITE_NAME } from '#lib/config.ts';
 	import { forumCategories, forumThreads } from '#lib/mock.ts';
 	import Icon from '#lib/components/Icon.svelte';
@@ -35,7 +37,7 @@
 			<span role="cell" class="c num"><span class="lbl">Trådar:&nbsp;</span>{r.threads}</span>
 			<span role="cell" class="c num"><span class="lbl">Inlägg:&nbsp;</span>{r.posts}</span>
 			<span role="cell" class="small last">
-				{#if r.latest}<a href={`/forum/trad/${r.latest.id}`}>{r.latest.title}</a><br /><span class="xs muted">{r.latest.last}</span>{/if}
+				{#if r.latest}<a href={`/forum/trad/${r.latest.id}`}>{r.latest.title}</a><br /><span class="xs muted">{agoLabel(r.latest.posts[r.latest.posts.length - 1].ago, demo.now)}</span>{/if}
 			</span>
 		</div>
 	{/each}

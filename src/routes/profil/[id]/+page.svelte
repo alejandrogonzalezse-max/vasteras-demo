@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { agoLabel, type Ago } from '#lib/time.ts';
 	import { ME_ID, SITE_NAME } from '#lib/config.ts';
 	import { defaultGuestbook, guestbooks, myFriends, placeById, userById } from '#lib/mock.ts';
 	import { demo, type ProfileTheme } from '#lib/state.svelte.ts';
@@ -29,14 +30,14 @@
 	let requested = $state<Record<string, boolean>>({});
 
 	// Lunarstorm-klassikern: senaste besökarna. Påhittade, utom att du själv syns hos andra.
-	const TIMES = ['i dag 16:12', 'i dag 14:47', 'i dag 11:03', 'i går 22:30', 'i går 19:15'];
+	const TIMES = [34, 117, 260, 790, 1430];
 	const visitors = $derived(
 		[
-			...(!isMe && !demo.d.sneak ? [{ id: ME_ID, when: 'nyss' }] : []),
+			...(!isMe && !demo.d.sneak ? [{ id: ME_ID, when: 0 as Ago }] : []),
 			...u.topFriends
 				.filter((id) => id !== ME_ID)
 				.slice(2, 7)
-				.map((id, i) => ({ id, when: TIMES[i] }))
+				.map((id, i) => ({ id, when: TIMES[i] as Ago }))
 		].slice(0, 5)
 	);
 
@@ -104,7 +105,7 @@
 					{#each visitors as v (v.id)}
 						<li>
 							<Avatar id={v.id} size={36} />
-							<span class="small">{#if v.id === ME_ID}<strong>Du</strong>{:else}<UserLink id={v.id} />{/if}<br /><span class="xs muted">{v.when}</span></span>
+							<span class="small">{#if v.id === ME_ID}<strong>Du</strong>{:else}<UserLink id={v.id} />{/if}<br /><span class="xs muted">{agoLabel(v.when, demo.now)}</span></span>
 						</li>
 					{/each}
 				</ul>
@@ -152,7 +153,7 @@
 							<Avatar id={e.by} size={36} />
 							<div>
 								<p class="small gb-head">
-									<UserLink id={e.by} /> <span class="muted">· {e.ago}</span>
+									<UserLink id={e.by} /> <span class="muted">· {agoLabel(e.ago, demo.now)}</span>
 									{#if isMe && i - (demo.d.guestbook[u.id]?.length ?? 0) >= 0 && i - (demo.d.guestbook[u.id]?.length ?? 0) < newCount}<span class="tag warn">Ny!</span>{/if}
 								</p>
 								<p class="gb-text">{e.text}</p>

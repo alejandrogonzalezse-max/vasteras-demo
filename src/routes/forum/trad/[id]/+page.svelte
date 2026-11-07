@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { agoLabel } from '#lib/time.ts';
 	import { SITE_NAME, ME_ID } from '#lib/config.ts';
 	import { userById } from '#lib/mock.ts';
 	import { demo } from '#lib/state.svelte.ts';
@@ -41,7 +42,7 @@
 		{@const u = userById(p.by)}
 		<li class="post">
 			<div class="post-bar xs">
-				<span>{p.ago}</span>
+				<span>{agoLabel(p.ago, demo.now)}</span>
 				<span class="num">#{p.n}</span>
 			</div>
 			<div class="post-grid">
