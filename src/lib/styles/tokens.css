@@ -100,7 +100,7 @@
 	--shadow-pressed: inset 0 2px 3px rgb(16 40 80 / 0.18);
 
 	--wm-fg: #1b56c4;
-	--wm-shadow: #0b2a5c;
+	--wm-shadow: #a9c1e6;
 
 	--map-filter: sepia(0.35) saturate(0.75) hue-rotate(-8deg) brightness(1.02);
 }

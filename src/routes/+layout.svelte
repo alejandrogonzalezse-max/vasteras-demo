@@ -63,7 +63,22 @@
 	let welcomeOpen = $state(false);
 	let welcomeName = $state('');
 
+	// "X har just loggat in" då och då – högst en gång per två minuter.
+	// Stängs av i sidfoten eller direkt i notisen. Visas inte under automatiska tester.
+	function scheduleLogins() {
+		if (navigator.webdriver) return;
+		const who = ['linnea-l', 'matteok', 'sannas', 'johanna-v', 'elinb', 'kicki61', 'grundaren', 'mopedmia'];
+		let i = Math.floor(Math.random() * who.length);
+		const tick = (ms: number) =>
+			setTimeout(() => {
+				if (demo.d.loggedIn && !document.hidden && demo.d.tour === null && !welcomeOpen) demo.loginToast(who[i++ % who.length]);
+				tick(120000 + Math.random() * 60000);
+			}, ms);
+		tick(25000);
+	}
+
 	onMount(() => {
+		scheduleLogins();
 		demo.load();
 		// ?hej=<namn>: Grundaren får namnet, och välkomstfönstret visas en gång per namn.
 		const name = sanitizeName(new URLSearchParams(location.search).get('hej'));
@@ -295,9 +310,17 @@
 			</ul>
 		</nav>
 		<div class="foot-reset">
-			<button type="button" class="btn btn-small" onclick={reset} data-testid="reset">
-				<Icon name="reset" size={12} /> Återställ demon
-			</button>
+			<div class="foot-btns">
+				<button type="button" class="btn btn-small" onclick={reset} data-testid="reset">
+					<Icon name="reset" size={12} /> Återställ demon
+				</button>
+				<button type="button" class="btn btn-small" aria-pressed={demo.d.sound} onclick={() => (demo.d.sound = !demo.d.sound)} data-testid="sound-toggle">
+					<Icon name={demo.d.sound ? 'sound' : 'mute'} size={12} /> Ljud: {demo.d.sound ? 'på' : 'av'}
+				</button>
+				<button type="button" class="btn btn-small" aria-pressed={demo.d.loginToasts} onclick={() => (demo.d.loginToasts = !demo.d.loginToasts)}>
+					Inloggningsnotiser: {demo.d.loginToasts ? 'på' : 'av'}
+				</button>
+			</div>
 			<p class="xs muted">
 				{#if demo.memoryOnly}
 					Din webbläsare tillåter inte lagring, så det du gör försvinner när du laddar om.
@@ -392,7 +415,8 @@
 
 	.logo-name {
 		display: block;
-		width: 216px;
+		width: 232px;
+		margin-bottom: 3px;
 	}
 
 	.menu-btn {
@@ -525,7 +549,7 @@
 
 	@media (max-width: 720px) {
 		.logo-name {
-			width: 180px;
+			width: 196px;
 		}
 	}
 
@@ -543,7 +567,8 @@
 		}
 
 		.logo-name {
-			width: 168px;
+			width: 176px;
+			margin-bottom: 0;
 		}
 
 		.logo-slogan,
@@ -710,6 +735,12 @@
 	.foot-links {
 		display: grid;
 		gap: 4px;
+	}
+
+	.foot-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
 	}
 
 	.foot-reset p {

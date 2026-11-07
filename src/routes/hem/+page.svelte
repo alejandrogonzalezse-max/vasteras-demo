@@ -13,6 +13,7 @@
 	import Photo from '#lib/components/Photo.svelte';
 	import UserLink from '#lib/components/UserLink.svelte';
 	import Scene from '#lib/components/Scene.svelte';
+	import { nudge } from '#lib/nudge.ts';
 	import { SCENE_TITLES, sceneNames } from '#lib/illustrations.ts';
 
 	const PER_PAGE = 4;
@@ -71,6 +72,11 @@
 		setTimeout(() => (msnSaved = false), 2500);
 	}
 
+	function knuffa(id: string) {
+		nudge(document.getElementById(`van-${id}`));
+		demo.knuff(id, () => nudge(document.querySelector('main')));
+	}
+
 	function greeting(now: number) {
 		const h = parts(now).h;
 		return h < 5 ? 'God natt' : h < 10 ? 'God morgon' : h < 17 ? 'Hej' : 'God kväll';
@@ -85,7 +91,7 @@
 
 <div class="page-head">
 	<h1>{greeting(demo.now)}, Gubben940!</h1>
-	<p>Klockan är <span class="num">{nowLabel(demo.now)}</span> . Vad sägs om att hitta på något i stället för att scrolla?</p>
+	<p>Klockan är <span class="num">{nowLabel(demo.now)}</span>. Vad sägs om att hitta på något i stället för att scrolla?</p>
 </div>
 
 <div class="grid-main">
@@ -211,8 +217,11 @@
 			{#snippet extra()}<span class="num">{onlineFriends.length}</span>{/snippet}
 			<ul class="plain friends">
 				{#each onlineFriends as u (u.id)}
-					<li>
-						<UserLink id={u.id} dot />
+					<li id={`van-${u.id}`}>
+						<span class="f-top">
+							<UserLink id={u.id} dot />
+							<button type="button" class="linkbtn xs knuff" onclick={() => knuffa(u.id)} aria-label={`Knuffa ${u.name}`}>Knuffa</button>
+						</span>
 						<span class="msn xs">{u.status}</span>
 					</li>
 				{/each}
@@ -360,6 +369,20 @@
 	.friends li {
 		display: grid;
 		gap: 0;
+		padding: 2px 4px;
+		margin: -2px -4px;
+	}
+
+	.f-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+	}
+
+	.knuff {
+		min-height: 24px;
+		padding: 0 4px;
 	}
 
 	.friends .msn {

@@ -1,10 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { PAGES, enter } from './helpers';
+import { PAGES, enter, openMenuIfMobile } from './helpers';
 
 for (const scheme of ['light', 'dark'] as const) {
 	test(`axe utan allvarliga fel – ${scheme === 'light' ? 'Kvällsblå' : 'Mälarnatt'}`, async ({ page }) => {
-		test.setTimeout(120_000);
+		test.setTimeout(180_000);
 		await page.emulateMedia({ colorScheme: scheme });
 		await page.goto('/');
 		const check = async (path: string) => {
@@ -45,5 +45,16 @@ for (const scheme of ['light', 'dark'] as const) {
 		await check('/anslagstavlan (kommentarer + notis)');
 		await page.goto('/profil/sannas');
 		await check('/profil/sannas (besökare)');
+		await page.goto('/profil/gubben940');
+		await page.getByTestId('pixla').click();
+		await page.getByTestId('play').click();
+		await check('/profil/gubben940 (pixla din figur + spelare)');
+		await page.goto('/kartan');
+		await page.getByTestId('time-filter').getByText('Nu', { exact: false }).first().click();
+		await check('/kartan (filter Nu)');
+		if (await openMenuIfMobile(page)) await check('/kartan (mobilmeny)');
+		await page.goto('/?hej=Kalle');
+		await expect(page.getByTestId('welcome')).toBeVisible();
+		await check('/?hej=Kalle (välkomstfönster)');
 	});
 }

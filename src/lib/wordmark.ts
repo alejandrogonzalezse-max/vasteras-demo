@@ -14,7 +14,9 @@ const G: Record<string, string[]> = {
 };
 
 export const WORD = 'Västeråsarna';
-export const WORD_W = WORD.length * 6 - 1;
+/** Teckenbredd 5 + 2 rutors mellanrum, så att skuggan inte smetar ihop bokstäverna. */
+const ADV = 7;
+export const WORD_W = WORD.length * ADV - 2;
 export const WORD_H = 9;
 
 /** SVG-path för ordet, eventuellt förskjuten (för skuggan). */
@@ -28,7 +30,7 @@ export function wordPath(dx = 0, dy = 0) {
 				if (row[x] === '#') {
 					let n = 1;
 					while (row[x + n] === '#') n++;
-					d += `M${i * 6 + x + dx} ${y + dy}h${n}v1h-${n}z`;
+					d += `M${i * ADV + x + dx} ${y + dy}h${n}v1h-${n}z`;
 					x += n;
 				} else x++;
 			}

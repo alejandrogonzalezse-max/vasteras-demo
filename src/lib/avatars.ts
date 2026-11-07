@@ -4,19 +4,33 @@
 type R = [number, number, number, number, string];
 
 export type Hair = 'kort' | 'lang' | 'knut' | 'lockigt' | 'flint' | 'keps' | 'mossa' | 'lugg';
+export type HairStyle = Exclude<Hair, 'keps' | 'mossa'>;
+export type Headwear = 'ingen' | 'keps' | 'mossa';
 
 export interface Look {
 	skin: number;
 	hair: Hair;
 	hairColor: string;
 	shirt: string;
+	/** Färg på keps eller mössa. */
 	hat?: string;
+	/** Huvudbonad (nyare modell). Äldre utseenden anger keps/mössa i `hair`. */
+	headwear?: Headwear;
 	glasses?: boolean;
 	beard?: boolean;
 }
 
-const SKIN = ['#f4d2b5', '#e8b68f', '#c98d63', '#a26a45', '#6e4630'];
-const HAIR = {
+/** Delar upp ett utseende i frisyr och huvudbonad. */
+export function splitLook(L: Look): { style: HairStyle; headwear: Headwear } {
+	const legacy = L.hair === 'keps' || L.hair === 'mossa' ? L.hair : null;
+	return {
+		style: legacy ? 'kort' : (L.hair as HairStyle),
+		headwear: L.headwear ?? legacy ?? 'ingen'
+	};
+}
+
+export const SKIN = ['#f4d2b5', '#e8b68f', '#c98d63', '#a26a45', '#6e4630'];
+export const HAIR = {
 	svart: '#26201c',
 	brun: '#5a3a24',
 	ljus: '#d8b25a',
@@ -86,8 +100,10 @@ function lighter(hex: string, f = 0.18) {
 	return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }
 
-export function avatarRects(id: string, bg: string): R[] {
-	const L = lookFor(id);
+export function avatarRects(id: string, bg: string, override?: Look | null): R[] {
+	const L = override ?? lookFor(id);
+	const { style, headwear } = splitLook(L);
+	const hat = L.hat ?? '#1b56c4';
 	const skin = SKIN[L.skin];
 	const shade = darker(skin, 0.85);
 	const hc = L.hairColor;
@@ -111,9 +127,9 @@ export function avatarRects(id: string, bg: string): R[] {
 	];
 
 	// Långt hår ritas bakom ansiktet först
-	if (L.hair === 'lang') r.splice(1, 0, [4, 4, 8, 10, hc], [3, 6, 1, 7, hc], [12, 6, 1, 7, hc]);
+	if (style === 'lang') r.splice(1, 0, [4, 4, 8, 10, hc], [3, 6, 1, 7, hc], [12, 6, 1, 7, hc]);
 
-	switch (L.hair) {
+	switch (style) {
 		case 'kort':
 			r.push([5, 3, 6, 1, hc], [4, 4, 8, 1, hc], [4, 5, 1, 2, hc], [11, 5, 1, 2, hc]);
 			break;
@@ -132,13 +148,12 @@ export function avatarRects(id: string, bg: string): R[] {
 		case 'flint':
 			r.push([4, 5, 1, 2, hc], [11, 5, 1, 2, hc], [6, 4, 2, 1, lighter(skin, 0.35)]);
 			break;
-		case 'keps':
-			r.push([5, 2, 6, 1, L.hat!], [4, 3, 8, 2, L.hat!], [3, 5, 10, 1, darker(L.hat!, 0.7)], [7, 3, 2, 1, '#ffffff'], [4, 6, 1, 1, hc], [11, 6, 1, 1, hc]);
-			break;
-		case 'mossa':
-			r.push([7, 0, 2, 1, '#f3e3c3'], [5, 1, 6, 1, L.hat!], [4, 2, 8, 2, L.hat!], [4, 4, 8, 1, darker(L.hat!, 0.7)], [4, 5, 1, 1, hc], [11, 5, 1, 1, hc]);
-			break;
 	}
+
+	if (headwear === 'keps')
+		r.push([5, 2, 6, 1, hat], [4, 3, 8, 2, hat], [3, 5, 10, 1, darker(hat, 0.7)], [7, 3, 2, 1, '#ffffff'], [4, 6, 1, 1, hc], [11, 6, 1, 1, hc]);
+	if (headwear === 'mossa')
+		r.push([7, 0, 2, 1, '#f3e3c3'], [5, 1, 6, 1, hat], [4, 2, 8, 2, hat], [4, 4, 8, 1, darker(hat, 0.7)], [4, 5, 1, 1, hc], [11, 5, 1, 1, hc]);
 
 	if (L.beard) r.push([5, 9, 6, 2, hc], [6, 11, 4, 1, hc], [7, 9, 2, 1, darker(skin, 0.65)]);
 	if (L.glasses)

@@ -87,6 +87,9 @@ export interface Toast {
 	text: string;
 	href?: string;
 	linkText?: string;
+	/** "login" = MSN-liknande "X har loggat in" med avatar och avstängningsknapp. */
+	kind?: 'login' | 'nudge';
+	who?: string;
 }
 
 function defaults(): DemoData {
@@ -142,10 +145,27 @@ class Demo {
 	#timers: ReturnType<typeof setTimeout>[] = [];
 
 	/** Kort notis nere i hörnet. Läses upp av skärmläsare (aria-live). */
-	toast(text: string, href?: string, linkText?: string) {
+	toast(text: string, href?: string, linkText?: string, extra: Partial<Toast> = {}) {
 		const id = ++this.#toastId;
-		this.toasts.push({ id, text, href, linkText });
+		this.toasts.push({ id, text, href, linkText, ...extra });
 		this.#later(() => this.dismiss(id), 6500);
+	}
+
+	/** MSN-knuff: kompisen knuffar tillbaka efter några sekunder. */
+	knuff(who: string, back: () => void) {
+		const name = userById(who)?.name ?? who;
+		this.toast(`Du knuffade ${name}!`, undefined, undefined, { kind: 'nudge', who });
+		this.#later(() => {
+			this.toast(`${name} knuffade dig tillbaka!`, `/profil/${who}`, 'Till profilen', { kind: 'nudge', who });
+			back();
+		}, 4000);
+	}
+
+	/** "X har just loggat in", som i MSN. */
+	loginToast(who: string) {
+		if (!this.d.loginToasts) return;
+		const name = userById(who)?.name ?? who;
+		this.toast(`${name} har just loggat in.`, `/profil/${who}`, 'Säg hej', { kind: 'login', who });
 	}
 
 	dismiss(id: number) {

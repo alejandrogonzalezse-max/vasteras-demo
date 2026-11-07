@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import type * as Leaflet from 'leaflet';
 	import { MAP_BOUNDS, MAP_CENTER, SITE_NAME, TILE_ATTRIBUTION, TILE_URL } from '#lib/config.ts';
+	import { dayIndex, onDay, parts } from '#lib/time.ts';
 	import { ICONS } from '#lib/icons.ts';
 	import { openDoors, places, userById, type Activity, type OpenDoor, type Place } from '#lib/mock.ts';
 	import { demo, whenLabel } from '#lib/state.svelte.ts';
@@ -42,9 +43,62 @@
 
 	const pinLabel = (p: Pin) => (p.kind === 'akt' ? `Aktivitet: ${p.item.title}` : `Plats: ${p.item.name}`);
 
+	// ----- Tidsfilter: Allt · Nu · Ikväll · I helgen
+	type TimeFilter = 'allt' | 'nu' | 'ikvall' | 'helgen';
+	let tf = $state<TimeFilter>('allt');
+
+	/** Pågår eller börjar inom en timme. */
+	const isNow = (a: Activity) => {
+		const m = demo.minutesUntil(a);
+		return m >= -90 && m <= 60;
+	};
+
+	function weekend(now: number) {
+		const wd = parts(now).wd;
+		const fri = wd === 6 ? -1 : wd === 0 ? -2 : (5 - wd + 7) % 7;
+		return [onDay(now, fri, '17:00'), onDay(now, fri + 2, '23:59')];
+	}
+
+	function inFilter(a: Activity, f: TimeFilter) {
+		const m = demo.minutesUntil(a);
+		const start = demo.now + m * 60000;
+		if (f === 'nu') return isNow(a);
+		if (f === 'ikvall') return m >= -90 && dayIndex(start) === dayIndex(demo.now) && parts(start).h >= 17;
+		if (f === 'helgen') {
+			const [from, to] = weekend(demo.now);
+			return start >= from && start <= to;
+		}
+		return true;
+	}
+
+	const FILTERS: { id: TimeFilter; label: string }[] = [
+		{ id: 'allt', label: 'Allt' },
+		{ id: 'nu', label: 'Nu' },
+		{ id: 'ikvall', label: 'Ikväll' },
+		{ id: 'helgen', label: 'I helgen' }
+	];
+
+	const shownActs = $derived(acts.filter((a) => inFilter(a, tf)));
+
+	// Listan under kartan, grupperad efter tid
+	const groupsByTime = $derived.by(() => {
+		const today = dayIndex(demo.now);
+		const out: { title: string; items: Activity[] }[] = [
+			{ title: 'Nu och inom en timme', items: [] },
+			{ title: 'Senare i dag', items: [] },
+			{ title: 'I morgon', items: [] },
+			{ title: 'Senare i veckan', items: [] }
+		];
+		for (const a of [...shownActs].sort((x, y) => demo.minutesUntil(x) - demo.minutesUntil(y))) {
+			const d = dayIndex(demo.now + demo.minutesUntil(a) * 60000) - today;
+			out[isNow(a) ? 0 : d <= 0 ? 1 : d === 1 ? 2 : 3].items.push(a);
+		}
+		return out.filter((g) => g.items.length);
+	});
+
 	function visiblePins(): Pin[] {
 		const out: Pin[] = [];
-		if (show.akt) for (const a of acts) out.push({ kind: 'akt', item: a });
+		if (show.akt) for (const a of acts) if (inFilter(a, tf)) out.push({ kind: 'akt', item: a });
 		if (show.plats) for (const p of places) out.push({ kind: 'plats', item: p });
 		return out;
 	}
@@ -75,7 +129,7 @@
 				const p = g.pins[0];
 				m = L.marker([p.item.lat, p.item.lng], {
 					icon: L.divIcon({
-						className: `pin pin-${p.kind}`,
+						className: `pin pin-${p.kind}${p.kind === 'akt' && isNow(p.item) ? ' pin-now' : ''}`,
 						html: `<span class="pin-box">${svg(p.kind === 'akt' ? 'star' : 'tree')}</span>`,
 						iconSize: [44, 44],
 						iconAnchor: [22, 42]
@@ -88,7 +142,7 @@
 				const n = g.pins.length;
 				m = L.marker(ll, {
 					icon: L.divIcon({
-						className: 'pin pin-cluster',
+						className: `pin pin-cluster${g.pins.some((p) => p.kind === 'akt' && isNow(p.item)) ? ' pin-now' : ''}`,
 						html: `<span class="cluster-box"><span>${n}</span></span>`,
 						iconSize: [44, 44],
 						iconAnchor: [22, 22]
@@ -225,6 +279,15 @@
 
 <div class="map-layout">
 	<div class="map-col">
+		<fieldset class="tfilter" data-testid="time-filter">
+			<legend class="sr-only">Tid</legend>
+			{#each FILTERS as f (f.id)}
+				<label class="tf" class:on={tf === f.id}>
+					<input type="radio" name="tid" value={f.id} bind:group={tf} onchange={() => renderPins()} />
+					{f.label} <span class="num">{acts.filter((a) => inFilter(a, f.id)).length}</span>
+				</label>
+			{/each}
+		</fieldset>
 		<fieldset class="layers" aria-label="Kartlager">
 			<legend class="sr-only">Visa lager</legend>
 			<label class="layer akt" class:off={!show.akt}>
@@ -300,11 +363,25 @@
 		{#if show.akt}
 			<div>
 				<h3 class="list-h">Aktiviteter</h3>
-				<ul class="plain list">
-					{#each acts as a (a.id)}
-						<li><button type="button" class="linkbtn" onclick={() => selectAndFocus({ kind: 'akt', item: a })}>{a.title}</button> <span class="xs muted">{whenLabel(demo.minutesUntil(a), demo.now)}</span></li>
-					{/each}
-				</ul>
+				{#each groupsByTime as g (g.title)}
+					<h4 class="time-h display">{g.title}</h4>
+					<ul class="plain list">
+						{#each g.items as a (a.id)}
+							<li class:sel={sel?.kind === 'akt' && sel.item.id === a.id}>
+								{#if isNow(a)}<span class="now-dot" aria-hidden="true"></span>{/if}
+								<button
+									type="button"
+									class="linkbtn"
+									aria-current={sel?.kind === 'akt' && sel.item.id === a.id ? 'true' : undefined}
+									onclick={() => selectAndFocus({ kind: 'akt', item: a })}>{a.title}</button
+								>
+								<span class="xs muted">{whenLabel(demo.minutesUntil(a), demo.now)}</span>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="small muted">Inget i den här tiden. Sätt upp en lapp!</p>
+				{/each}
 			</div>
 		{/if}
 		{#if show.door}
@@ -341,6 +418,113 @@
 	@media (min-width: 900px) {
 		.map-layout {
 			grid-template-columns: minmax(0, 1fr) 320px;
+		}
+	}
+
+	.tfilter {
+		display: inline-flex;
+		flex-wrap: wrap;
+		gap: 0;
+		margin: 0 0 var(--space-2);
+		padding: 0;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-pill);
+		overflow: hidden;
+	}
+
+	.tf {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 4px 14px;
+		font-size: var(--text-sm);
+		font-weight: 700;
+		background: var(--surface);
+		cursor: pointer;
+	}
+
+	.tf + .tf {
+		border-left: 1px solid var(--border);
+	}
+
+	.tf input {
+		position: absolute;
+		opacity: 0;
+		width: 1px;
+		height: 1px;
+	}
+
+	.tf .num {
+		font-size: var(--text-xs);
+		color: var(--text-muted);
+	}
+
+	.tf.on {
+		color: var(--accent-text);
+		background: var(--accent);
+	}
+
+	.tf.on .num {
+		color: var(--accent-text);
+	}
+
+	.tf:has(input:focus-visible) {
+		outline: 3px solid var(--focus);
+		outline-offset: -3px;
+	}
+
+	.time-h {
+		margin: var(--space-2) 0 4px;
+		font-size: var(--text-lg);
+		color: var(--head-text);
+	}
+
+	.list li.sel {
+		padding: 2px 6px;
+		margin: -2px -6px;
+		background: var(--accent-soft);
+		border-radius: var(--radius-sm);
+	}
+
+	.now-dot {
+		display: inline-block;
+		width: 8px;
+		height: 8px;
+		margin-right: 4px;
+		background: var(--online);
+		border-radius: 50%;
+	}
+
+	/* Det som händer nu pulserar mjukt (inte med reducerad rörelse). */
+	.map :global(.pin-now .cluster-box::before),
+	.map :global(.pin-now .pin-box::before) {
+		content: '';
+		position: absolute;
+		inset: -6px;
+		border: 3px solid #f2c14e;
+		border-radius: 10px;
+		animation: pulse 1.6s ease-out infinite;
+	}
+
+	@keyframes pulse {
+		from {
+			opacity: 0.9;
+			transform: scale(0.85);
+		}
+		to {
+			opacity: 0;
+			transform: scale(1.35);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.map :global(.pin-now .cluster-box::before),
+		.map :global(.pin-now .pin-box::before) {
+			animation: none;
+			opacity: 1;
+			transform: none;
 		}
 	}
 
@@ -478,6 +662,7 @@
 	}
 
 	.map :global(.cluster-box) {
+		position: relative;
 		display: grid;
 		place-items: center;
 		width: 40px;

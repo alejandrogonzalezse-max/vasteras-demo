@@ -53,6 +53,8 @@
 		<li><span>3</span> Ni ses på riktigt</li>
 	</ol>
 
+	<p class="p-promise">Gratis. Ideellt. För alla över 18 i Västerås.</p>
+
 	<footer class="p-foot">
 		<div class="p-qr">
 			<svg viewBox={`-2 -2 ${size + 4} ${size + 4}`} shape-rendering="crispEdges" role="img" aria-label={`QR-kod till ${host}`}>
@@ -84,6 +86,7 @@
 		position: relative;
 		display: flex;
 		flex-direction: column;
+		justify-content: space-between;
 		width: min(100%, 210mm);
 		aspect-ratio: 210 / 297;
 		margin-inline: auto;
@@ -96,7 +99,7 @@
 		border: 1px solid #c9b78a;
 		box-shadow: var(--shadow);
 		--wm-fg: #1b56c4;
-		--wm-shadow: #0b2a5c;
+		--wm-shadow: #c9b78a;
 		print-color-adjust: exact;
 		-webkit-print-color-adjust: exact;
 	}
@@ -174,12 +177,12 @@
 
 	.p-pics {
 		position: relative;
-		height: 40cqw;
+		height: 46cqw;
 	}
 
 	.p-pol {
 		position: absolute;
-		width: 24cqw;
+		width: 27cqw;
 		padding: 1.4cqw 1.4cqw 1cqw;
 		background: #fff;
 		box-shadow: 0 0.6cqw 1.6cqw rgb(0 0 0 / 0.3);
@@ -209,7 +212,7 @@
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 2.4cqw;
-		margin: 0 0 auto;
+		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
@@ -238,6 +241,19 @@
 		color: #fff;
 		background: #1b56c4;
 		border-radius: 1cqw;
+	}
+
+	.p-promise {
+		margin: 0;
+		padding: 3cqw 2cqw;
+		font-family: var(--font-display);
+		font-size: 6cqw;
+		line-height: 1.05;
+		text-align: center;
+		color: #10305f;
+		background: #fff2a8;
+		border: 0.4cqw solid #e2cb52;
+		transform: rotate(-1deg);
 	}
 
 	.p-foot {

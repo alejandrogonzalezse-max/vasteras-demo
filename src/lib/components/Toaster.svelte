@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { demo } from '#lib/state.svelte.ts';
 	import Icon from './Icon.svelte';
+	import Avatar from './Avatar.svelte';
 </script>
 
 <div class="toaster" role="status" aria-live="polite" aria-atomic="false">
 	{#each demo.toasts as t (t.id)}
-		<div class="toast">
-			<span class="t-icon" aria-hidden="true"><Icon name="star" size={14} /></span>
+		<div class="toast" class:login={t.kind === 'login'}>
+			{#if t.who}
+				<Avatar id={t.who} size={32} />
+			{:else}
+				<span class="t-icon" aria-hidden="true"><Icon name="star" size={14} /></span>
+			{/if}
 			<p>
 				{t.text}
 				{#if t.href}<a href={t.href} onclick={() => demo.dismiss(t.id)}>{t.linkText ?? 'Visa'}</a>{/if}
+				{#if t.kind === 'login'}
+					<br /><button type="button" class="linkbtn xs" onclick={() => { demo.d.loginToasts = false; demo.dismiss(t.id); }}>Stäng av inloggningsnotiser</button>
+				{/if}
 			</p>
 			<button type="button" class="close" aria-label="Stäng notisen" onclick={() => demo.dismiss(t.id)}>×</button>
 		</div>
@@ -52,6 +60,11 @@
 
 	.toast p {
 		margin: 0;
+	}
+
+	.toast.login {
+		border-left-color: var(--online);
+		background: linear-gradient(to bottom, var(--accent-soft), var(--surface) 70%);
 	}
 
 	.toast a {

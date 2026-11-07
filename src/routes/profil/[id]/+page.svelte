@@ -7,6 +7,9 @@
 	import Box from '#lib/components/Box.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import Scene from '#lib/components/Scene.svelte';
+	import AvatarEditor from '#lib/components/AvatarEditor.svelte';
+	import RetroPlayer from '#lib/components/RetroPlayer.svelte';
+	import { nudge } from '#lib/nudge.ts';
 	import UserLink from '#lib/components/UserLink.svelte';
 	import type { PageProps } from './$types';
 
@@ -43,6 +46,27 @@
 
 	// Två gästboksinlägg är "nya" tills man har tittat på sin egen profil.
 	let newCount = $state(0);
+	let editing = $state(false);
+
+	// Besöksräknare i LCD-stil. Gubben940 börjar på 1 336, så första besöket blir nr 001 337.
+	const BASE: Record<string, number> = { gubben940: 1336, grundaren: 29 };
+	const base = $derived(BASE[u.id] ?? ([...u.id].reduce((n, c) => n * 31 + c.charCodeAt(0), 7) % 8000) + 400);
+	let counted = '';
+	$effect(() => {
+		if (!demo.ready || counted === u.id) return;
+		counted = u.id;
+		demo.d.visits[u.id] = (demo.d.visits[u.id] ?? 0) + 1;
+	});
+	const visitorNo = $derived(
+		String(base + (demo.d.visits[u.id] ?? 1))
+			.padStart(6, '0')
+			.replace(/(\d{3})(\d{3})$/, '$1 $2')
+	);
+
+	function knuffa() {
+		nudge(document.getElementById('profilruta'));
+		demo.knuff(u.id, () => nudge(document.querySelector('main')));
+	}
 	$effect(() => {
 		if (demo.ready && isMe && !demo.d.seenGuestbook) {
 			newCount = 2;
@@ -78,8 +102,17 @@
 
 	<div class="p-grid">
 		<div class="stack">
-			<Box title="Profil" icon="user">
+			<Box title="Profil" icon="user" id="profilruta">
 				<div class="pic"><Avatar id={u.id} size={150} /></div>
+				{#if isMe}
+					{#if editing}
+						<AvatarEditor onclose={() => (editing = false)} />
+					{:else}
+						<button type="button" class="btn btn-small pixla" onclick={() => (editing = true)} data-testid="pixla">
+							<Icon name="user" size={12} /> Pixla din figur
+						</button>
+					{/if}
+				{/if}
 				<p class="status msn"><span class="dot" class:away={u.presence === 'away'} class:off={u.presence === 'off'}></span> {status}</p>
 				<dl class="facts small">
 					<dt>Stadsdel</dt><dd>{u.area}</dd>
@@ -88,6 +121,12 @@
 					<dt>Medlem sedan</dt><dd>{u.joined}</dd>
 				</dl>
 				<p class="song small"><Icon name="note" size={12} /> <strong>Låt just nu:</strong> {u.song}</p>
+				<RetroPlayer title={u.song} />
+				<p class="counter small" data-testid="counter">
+					<span>Du är besökare nr</span>
+					<span class="lcd-counter" aria-hidden="true">{visitorNo}</span>
+					<span class="sr-only">{visitorNo}</span>
+				</p>
 				{#if !isMe}
 					<div class="row">
 						{#if isFriend}
@@ -98,6 +137,9 @@
 							<button type="button" class="btn btn-small btn-primary" onclick={() => (requested[u.id] = true)}>Lägg till som vän</button>
 						{/if}
 						<a class="btn btn-small" href="#gastbok">Skriv i gästboken</a>
+						{#if isFriend}
+							<button type="button" class="btn btn-small" onclick={knuffa} data-testid="knuffa"><Icon name="star" size={10} /> Knuffa</button>
+						{/if}
 					</div>
 				{/if}
 			</Box>
@@ -317,6 +359,18 @@
 
 	.facts dd {
 		margin: 0;
+	}
+
+	.pixla {
+		margin-bottom: var(--space-2);
+	}
+
+	.counter {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		margin: var(--space-3) 0;
 	}
 
 	.song {

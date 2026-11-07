@@ -21,7 +21,7 @@
 
 <dialog
 	bind:this={dlg}
-	class="msn"
+	class="msn-win"
 	aria-labelledby="welcome-title"
 	aria-describedby="welcome-text"
 	data-testid="welcome"
@@ -51,7 +51,7 @@
 </dialog>
 
 <style>
-	.msn {
+	.msn-win {
 		width: min(460px, calc(100vw - 24px));
 		padding: 0;
 		color: var(--text);
@@ -64,11 +64,11 @@
 		overflow: hidden;
 	}
 
-	.msn[open] {
+	.msn-win[open] {
 		animation: nudge 520ms var(--ease);
 	}
 
-	.msn::backdrop {
+	.msn-win::backdrop {
 		background: rgb(7 13 25 / 0.45);
 	}
 
@@ -178,7 +178,7 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.msn[open] {
+		.msn-win[open] {
 			animation: none;
 		}
 	}
