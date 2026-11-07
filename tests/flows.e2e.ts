@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { PAGES, collectErrors, enter } from './helpers';
+import { PAGES, clickThemeToggle, collectErrors, enter, openMenuIfMobile } from './helpers';
 
 test('startsidan för utloggade och inbjudningsformuläret', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByRole('heading', { level: 1 })).toContainText('Lite mer som förr');
-	await expect(page.getByText('Du är utloggad')).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Huvudmeny' })).toHaveCount(0);
 	await expect(page.getByRole('heading', { name: 'Tärningen' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'En vanlig vecka i Västerås' })).toBeVisible();
 	const form = page.locator('#inbjudan');
 	await form.getByRole('button', { name: 'Gå med' }).click();
 	await expect(form.getByRole('alert')).toContainText('inbjudningskoden');
@@ -160,11 +161,11 @@ test('byt tema och temat sparas', async ({ page }) => {
 	await enter(page);
 	const html = page.locator('html');
 	await expect(html).toHaveAttribute('data-theme', 'light');
-	await page.getByTestId('theme-toggle').click();
+	await clickThemeToggle(page);
 	await expect(html).toHaveAttribute('data-theme', 'dark');
 	await page.reload();
 	await expect(html).toHaveAttribute('data-theme', 'dark');
-	await page.getByTestId('theme-toggle').click();
+	await clickThemeToggle(page);
 	await expect(html).toHaveAttribute('data-theme', 'light');
 });
 
@@ -209,9 +210,10 @@ test('visa som utloggad och återställ demon', async ({ page }) => {
 	await page.getByRole('button', { name: 'Spara' }).click();
 	await expect(page.locator('.current')).toContainText('Testar demon');
 
+	await openMenuIfMobile(page);
 	await page.getByRole('button', { name: 'Visa som utloggad' }).click();
 	await expect(page).toHaveURL(/\/$/);
-	await expect(page.getByText('Du är utloggad')).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Huvudmeny' })).toHaveCount(0);
 	await page.goto('/hem');
 	await expect(page.getByRole('heading', { name: 'Bara för inloggade' })).toBeVisible();
 	await page.getByRole('button', { name: /Gå in i demon/ }).click();

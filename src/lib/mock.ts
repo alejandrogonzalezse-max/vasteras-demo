@@ -1,4 +1,5 @@
 import type { Ago, HolidayId } from './time.ts';
+import { founder } from './founder.svelte.ts';
 
 // All påhittad demodata bor här. Inga riktiga personer, inga riktiga foton.
 // Tider anges relativt "nu" (i minuter) så att demon alltid ser levande ut.
@@ -16,7 +17,7 @@ export interface User {
 	area: string;
 	status: string;
 	presence: Presence;
-	age: number;
+	age?: number;
 	song: string;
 	about: string;
 	topPlaces: string[];
@@ -24,9 +25,28 @@ export interface User {
 	color: string;
 	joined: string;
 	mod?: boolean;
+	badge?: string;
 }
 
 export const users: User[] = [
+	{
+		id: 'grundaren',
+		get name() {
+			return founder.name;
+		},
+		area: 'Västerås',
+		status: 'Välkommen hit! Säg till om något saknas.',
+		presence: 'on',
+		song: 'Västeråsarna – Kvällsdopp (egen chiptune-slinga)',
+		about:
+			'Jag startade Västeråsarna en novemberkväll när jag insåg att jag kände fler människor i mobilen än i trappuppgången. Tanken är enkel: någon sätter upp en lapp, andra dyker upp. Ingen reklam, ingen algoritm – bara västeråsare som hittar på saker ihop.\n\nJag modererar tills vi är fler som kan dela på det. Säg hej om du ser mig vid grillen!',
+		topPlaces: ['framnas', 'djakneberget', 'vasaparken', 'bjorno', 'anundshog', 'lovudden', 'kokpunkten', 'halla'],
+		topFriends: ['gubben940', 'sannas', 'linnea-l', 'matteok', 'kicki61', 'backby-pelle', 'johanna-v', 'mopedmia'],
+		color: '#1b56c4',
+		joined: 'första dagen',
+		mod: true,
+		badge: 'Grundare'
+	},
 	{
 		id: 'gubben940',
 		name: 'Gubben940',
@@ -38,7 +58,7 @@ export const users: User[] = [
 		about:
 			'Uppvuxen på Skiljebo, jobbade på verkstan i trettio år. Gillar korvgrillning, gamla mopeder och att prata med folk. Startade söndagspromenaderna för att jag tröttnade på att bara se grannarna på Facebook-grupper. Säg hej om du ser mig vid grillplatsen!',
 		topPlaces: ['djakneberget', 'bjorno', 'vasaparken', 'framnas', 'anundshog', 'lovudden', 'halla', 'kokpunkten'],
-		topFriends: ['matteok', 'sannas', 'erik-pa-raby', 'linnea-l', 'backby-pelle', 'johanna-v', 'fotofredrik', 'mopedmia'],
+		topFriends: ['grundaren', 'matteok', 'sannas', 'erik-pa-raby', 'linnea-l', 'backby-pelle', 'johanna-v', 'fotofredrik'],
 		color: '#3a6ea5',
 		joined: 'mars 2026'
 	},
@@ -273,6 +293,7 @@ export const userById = (id: string) => users.find((u) => u.id === id);
 
 /** Gubben940:s vänner (den inloggade demoanvändaren). */
 export const myFriends = [
+	'grundaren',
 	'matteok',
 	'sannas',
 	'erik-pa-raby',
@@ -778,12 +799,19 @@ export const openPhotos = [
 
 export const guestbooks: Record<string, { by: string; ago: Ago; text: string }[]> = {
 	gubben940: [
+		{ by: 'grundaren', ago: 95, text: 'Tack för att du var först med att sätta upp en lapp. Det var då det kändes på riktigt!' },
 		{ by: 'matteok', ago: 736, text: 'Tack för grillningen! Ses på brännbollen?' },
 		{ by: 'kicki61', ago: 5670, text: 'Kul att gå med dig runt berget. Ta med den där goda kakan nästa gång.' },
 		{ by: 'erik-pa-raby', ago: 8550, text: 'Cykelpumpen är din om du vill ha den. Kram från Råby' },
 		{ by: 'linnea-l', ago: 14310, text: 'Har ett vykort på Skiljebo från 1958 – ska jag ta med det på söndag?' }
 	]
 };
+
+guestbooks.grundaren = [
+	{ by: 'gubben940', ago: 40, text: 'Tack för att du drog igång det här. Ses vid grillen!' },
+	{ by: 'sannas', ago: 300, text: 'Bästa idén i Västerås på länge. Nattbad nästa?' },
+	{ by: 'kicki61', ago: 1500, text: 'Jag har inte träffat så här många nya människor sedan 70-talet.' }
+];
 
 export const defaultGuestbook = (id: string) => {
 	const u = userById(id);

@@ -27,6 +27,7 @@ const HAIR = {
 
 /** Handplockade utseenden för huvudpersonerna i demon. */
 const LOOKS: Record<string, Look> = {
+	grundaren: { skin: 1, hair: 'mossa', hairColor: '#5a3a24', shirt: '#f2c14e', hat: '#1b56c4' },
 	gubben940: { skin: 1, hair: 'keps', hairColor: HAIR.gra, shirt: '#2f5a3c', hat: '#1b56c4', beard: true },
 	matteok: { skin: 2, hair: 'lockigt', hairColor: HAIR.svart, shirt: '#c8463a' },
 	sannas: { skin: 0, hair: 'knut', hairColor: HAIR.ljus, shirt: '#3f6fa8' },

@@ -21,6 +21,9 @@
 	import Gate from '#lib/components/Gate.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import Toaster from '#lib/components/Toaster.svelte';
+	import Wordmark from '#lib/components/Wordmark.svelte';
+	import Welcome from '#lib/components/Welcome.svelte';
+	import { founder, sanitizeName } from '#lib/founder.svelte.ts';
 	import Tour from '#lib/components/Tour.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -39,7 +42,7 @@
 		{ href: '/moderering', label: 'Moderering', short: 'Mod', icon: 'shield' }
 	];
 
-	const PUBLIC = ['/', '/ordningsregler', '/integritet', '/kontakt', '/anmal'];
+	const PUBLIC = ['/', '/om', '/affisch', '/ordningsregler', '/integritet', '/kontakt', '/anmal'];
 	const path = $derived(page.url.pathname);
 	const isPublic = $derived(PUBLIC.includes(path) || page.status === 404);
 	/**
@@ -56,9 +59,40 @@
 		return path === href || path.startsWith(href + '/');
 	}
 
+	let menuOpen = $state(false);
+	let welcomeOpen = $state(false);
+	let welcomeName = $state('');
+
 	onMount(() => {
 		demo.load();
+		// ?hej=<namn>: Grundaren får namnet, och välkomstfönstret visas en gång per namn.
+		const name = sanitizeName(new URLSearchParams(location.search).get('hej'));
+		if (name) {
+			demo.d.founderName = name;
+			if (demo.d.welcomedFor !== name && demo.d.tour === null) {
+				welcomeName = name;
+				welcomeOpen = true;
+				demo.d.welcomedFor = name;
+			}
+		}
 	});
+
+	$effect(() => {
+		founder.name = demo.d.founderName ?? 'Grundaren';
+	});
+
+	function welcomeTour() {
+		welcomeOpen = false;
+		demo.d.loggedIn = true;
+		demo.d.tour = 0;
+		goto('/hem');
+	}
+
+	function welcomeSelf() {
+		welcomeOpen = false;
+		demo.d.loggedIn = true;
+		goto('/hem');
+	}
 
 	$effect(() => {
 		// Spara vid varje ändring (no-op tills inläst).
@@ -86,6 +120,7 @@
 	}
 
 	afterNavigate(() => {
+		menuOpen = false;
 		// Scrolla bara flikraden i sidled (mellanbredd), aldrig själva sidan.
 		const tabs = document.querySelector<HTMLElement>('.tabs');
 		const active = tabs?.querySelector<HTMLElement>('a[aria-current="page"]');
@@ -135,6 +170,13 @@
 	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontDisplay} />
 </svelte:head>
 
+<svelte:window
+	onclick={(e) => {
+		if (!(e.target as Element | null)?.closest?.('#mobilmeny, .menu-btn')) menuOpen = false;
+	}}
+	onkeydown={(e) => e.key === 'Escape' && (menuOpen = false)}
+/>
+
 <a class="skip" href="#innehall">Hoppa till innehållet</a>
 
 <div class="demo-bar" role="note">{DEMO_NOTICE}</div>
@@ -144,7 +186,7 @@
 		<a class="logo" href={loggedIn === false ? '/' : '/hem'}>
 			<span class="logo-mark" aria-hidden="true"><Icon name="dice" size={22} /></span>
 			<span class="logo-text">
-				<span class="logo-name">{SITE_NAME}</span>
+				<span class="logo-name"><Wordmark scale={3} /></span>
 				<span class="logo-slogan">{SLOGAN}</span>
 			</span>
 		</a>
@@ -156,12 +198,37 @@
 				</span>
 				<button type="button" class="btn btn-small auth-in" onclick={logout}>Visa som utloggad</button>
 			{/if}
-			{#if showOut}
-				<span class="who small muted auth-out"><span class="dot off"></span> Du är utloggad</span>
-				<a class="btn btn-small btn-primary auth-out" href="/#inbjudan">Har du en inbjudan?</a>
-			{/if}
 			<ThemeToggle bind:this={toggle} />
 		</div>
+		<button
+			type="button"
+			class="menu-btn"
+			aria-label="Meny"
+			aria-expanded={menuOpen}
+			aria-controls="mobilmeny"
+			data-testid="menu-btn"
+			onclick={() => (menuOpen = !menuOpen)}
+		>
+			<Icon name="menu" size={18} />
+		</button>
+		{#if menuOpen}
+			<div
+				id="mobilmeny"
+				class="mobile-menu"
+				role="group"
+				aria-label="Meny"
+			>
+				{#if loggedIn !== false}
+					<p class="small mm-who"><span class="dot"></span> Inloggad som <a href={`/profil/${ME_ID}`}><strong>{me.name}</strong></a></p>
+					<button type="button" class="btn btn-small mm-full" onclick={() => { menuOpen = false; logout(); }}>Visa som utloggad</button>
+					<button type="button" class="btn btn-small mm-full" onclick={() => { menuOpen = false; startTour(); }}><Icon name="eye" size={12} /> Visa mig runt</button>
+				{:else}
+					<p class="small mm-who"><span class="dot off"></span> Du tittar som utloggad</p>
+					<button type="button" class="btn btn-small btn-primary mm-full" onclick={() => { menuOpen = false; demo.d.loggedIn = true; goto('/hem'); }}>Gå in i demon</button>
+				{/if}
+				<ThemeToggle testid="theme-toggle-menu" full />
+			</div>
+		{/if}
 	</div>
 	{#if showIn}
 		<nav class="tabs-wrap auth-in" aria-label="Huvudmeny">
@@ -209,15 +276,18 @@
 
 <Toaster />
 <Tour />
+<Welcome name={welcomeName} bind:open={welcomeOpen} ontour={welcomeTour} onself={welcomeSelf} />
 
 <footer class="site-foot">
 	<div class="wrap foot-grid">
 		<div>
-			<p class="foot-name">{SITE_NAME}</p>
+			<div class="foot-name"><Wordmark scale={2} /></div>
 			<p class="small">{SLOGAN}<br /><strong>{TAGLINE}</strong></p>
 		</div>
 		<nav aria-label="Sidfot">
 			<ul class="plain foot-links">
+				<li><a href="/om">Om Västeråsarna</a></li>
+				<li><a href="/affisch">Affischen</a></li>
 				<li><a href="/ordningsregler">Ordningsregler</a></li>
 				<li><a href="/integritet">Integritet</a></li>
 				<li><a href="/kontakt">Kontakt</a></li>
@@ -321,8 +391,16 @@
 	}
 
 	.logo-name {
-		font-family: var(--font-pixel);
-		font-size: var(--text-lg);
+		display: block;
+		width: 216px;
+	}
+
+	.menu-btn {
+		display: none;
+	}
+
+	.mobile-menu {
+		display: none;
 	}
 
 	.logo-slogan {
@@ -447,16 +525,75 @@
 
 	@media (max-width: 720px) {
 		.logo-name {
-			font-size: var(--text-md);
+			width: 180px;
+		}
+	}
+
+	/* Mobil: kompakt header på en rad – logga till vänster, menyknapp till höger. */
+	@media (max-width: 599px) {
+		.head-row {
+			position: relative;
+			flex-wrap: nowrap;
+			padding-block: var(--space-2);
 		}
 
+		.logo-mark {
+			width: 32px;
+			height: 32px;
+		}
+
+		.logo-name {
+			width: 168px;
+		}
+
+		.logo-slogan,
 		.userbar {
-			width: 100%;
+			display: none;
 		}
 
-		.who {
-			flex-basis: 100%;
-			font-size: var(--text-xs);
+		.menu-btn {
+			display: grid;
+			place-items: center;
+			width: 44px;
+			height: 44px;
+			color: var(--head-text);
+			background: var(--btn-bg);
+			border: 1px solid var(--btn-border);
+			border-radius: var(--radius);
+			cursor: pointer;
+		}
+
+		.menu-btn[aria-expanded='true'] {
+			color: var(--accent-text);
+			background: var(--accent);
+			border-color: var(--accent);
+		}
+
+		.mobile-menu {
+			position: absolute;
+			top: calc(100% - 4px);
+			right: var(--gutter);
+			z-index: 50;
+			display: grid;
+			gap: var(--space-2);
+			width: min(280px, calc(100vw - 32px));
+			padding: var(--space-3);
+			background: var(--surface);
+			border: 1px solid var(--head-border);
+			border-radius: var(--radius-lg);
+			box-shadow: var(--shadow);
+		}
+
+		.mm-who {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			margin: 0;
+		}
+
+		.mm-full {
+			width: 100%;
+			justify-content: flex-start;
 		}
 	}
 

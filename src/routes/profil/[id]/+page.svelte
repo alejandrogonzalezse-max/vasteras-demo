@@ -64,8 +64,8 @@
 
 <div class={`profile theme-${theme}`} data-testid="profile">
 	<div class="page-head p-head">
-		<h1>{u.name}</h1>
-		<p>{isMe ? 'Din profil – så här ser den ut för andra.' : `${u.area} · ${u.age} år`}</p>
+		<h1 class="p-title">{u.name}{#if u.badge}<span class="badge" data-testid="badge">{u.badge}</span>{/if}</h1>
+		<p>{isMe ? 'Din profil – så här ser den ut för andra.' : u.age ? `${u.area} · ${u.age} år` : `${u.area}${u.mod ? ' · moderator' : ''}`}</p>
 	</div>
 	{#if isMe}
 		<fieldset class="theme-pick">
@@ -83,7 +83,8 @@
 				<p class="status msn"><span class="dot" class:away={u.presence === 'away'} class:off={u.presence === 'off'}></span> {status}</p>
 				<dl class="facts small">
 					<dt>Stadsdel</dt><dd>{u.area}</dd>
-					<dt>Ålder</dt><dd>{u.age} år</dd>
+					{#if u.age}<dt>Ålder</dt><dd>{u.age} år</dd>{/if}
+					{#if u.mod}<dt>Roll</dt><dd>Moderator</dd>{/if}
 					<dt>Medlem sedan</dt><dd>{u.joined}</dd>
 				</dl>
 				<p class="song small"><Icon name="note" size={12} /> <strong>Låt just nu:</strong> {u.song}</p>
@@ -218,6 +219,28 @@
 		--link: #8fe0a8;
 		--link-visited: #b4ecc5;
 		--surface-2: #111f17;
+	}
+
+	.p-title {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2) var(--space-3);
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 2px 10px 3px;
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: #3b2a00;
+		background: linear-gradient(#ffe58a, #f2c14e);
+		border: 1px solid #b88a1e;
+		border-radius: var(--radius-sm);
+		box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.12);
 	}
 
 	.profile {

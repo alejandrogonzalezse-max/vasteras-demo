@@ -6,6 +6,7 @@
 	import Box from '#lib/components/Box.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import Scene from '#lib/components/Scene.svelte';
+	import Avatar from '#lib/components/Avatar.svelte';
 
 	let code = $state('');
 	let email = $state('');
@@ -17,6 +18,13 @@
 		{ icon: 'board', title: 'Anslagstavlan', text: 'Sätt upp en lapp: "Korvgrillning på Djäkneberget kl 18". Folk trycker "Jag kommer". Klart.' },
 		{ icon: 'pin', title: 'Kartan', text: 'Se vad som händer i stan just nu, och vilka grannar som har öppen dörr – utan att avslöja var de bor.' },
 		{ icon: 'book', title: 'Dagbok och gästböcker', text: 'Som förr: vänner, topp 8, gästböcker och MSN-status. Men bara för att ses på riktigt.' }
+	];
+
+	const week = [
+		{ day: 'Måndag 19:00', title: 'Brädspel och te på biblioteket', place: 'Stadsbiblioteket', people: ['johanna-v', 'linnea-l', 'hampus-o'], count: 9 },
+		{ day: 'Onsdag 18:00', title: 'Öppet garage – lär dig byta däck', place: 'Pettersberg (adressen får du av värden)', people: ['mopedmia', 'erik-pa-raby', 'tobbe-tillberga'], count: 5 },
+		{ day: 'Fredag 21:30', title: 'Kvällsdopp och bastu', place: 'Framnäs, bryggan', people: ['sannas', 'elinb', 'sofia-bjurhovda'], count: 12 },
+		{ day: 'Söndag 13:00', title: 'Söndagspromenad runt Anundshög', place: 'Anundshög, parkeringen', people: ['gubben940', 'rut-rocklunda', 'kicki61'], count: 7 }
 	];
 
 	function submit(e: SubmitEvent) {
@@ -44,19 +52,40 @@
 			Målet är att vi ska träffas på riktigt i stället för att scrolla.
 		</p>
 		<p class="pledge display">{TAGLINE}</p>
-		<div class="row">
-			<a class="btn btn-primary btn-big" href="#inbjudan">Jag har en inbjudan</a>
-			<button type="button" class="btn btn-big" onclick={() => { demo.d.loggedIn = true; demo.d.tour = 0; goto('/hem'); }} data-testid="tour-landing">
+		<div class="row cta">
+			<button type="button" class="btn btn-primary btn-big" onclick={() => { demo.d.loggedIn = true; demo.d.tour = 0; goto('/hem'); }} data-testid="tour-landing">
 				<Icon name="eye" size={14} /> Visa mig runt (2 min)
 			</button>
-			<button type="button" class="btn btn-big" onclick={() => { demo.d.loggedIn = true; goto('/hem'); }}>Titta runt i demon</button>
+			<button type="button" class="btn btn-big" onclick={() => { demo.d.loggedIn = true; goto('/hem'); }}>Titta runt själv</button>
 		</div>
+		<p class="small more"><a href="/om">Läs om Västeråsarna och varför det finns</a> · <a href="#inbjudan">Har du en inbjudan?</a></p>
 	</div>
 	<div class="hero-art" aria-hidden="true">
 		<div class="polaroid p1"><Scene scene="brygga" alt={null} /><em>nattbad</em></div>
 		<div class="polaroid p2"><Scene scene="bal" alt={null} /><em>grillkväll</em></div>
 		<div class="polaroid p3"><Scene scene="kubb" alt={null} /><em>kubb på Lövudden</em></div>
 	</div>
+</section>
+
+<section class="week" aria-labelledby="vecka-rubrik">
+	<h2 class="section-title" id="vecka-rubrik">En vanlig vecka i Västerås</h2>
+	<p class="week-lead">Så här kan det se ut på anslagstavlan. Någon sätter upp en lapp – andra dyker upp.</p>
+	<ul class="plain board">
+		{#each week as w, i (w.title)}
+			<li class="note" style:--tilt={`${[-2, 1.5, -1, 2][i]}deg`}>
+				<span class="pin" aria-hidden="true"></span>
+				<p class="day display">{w.day}</p>
+				<h3>{w.title}</h3>
+				<p class="small where"><Icon name="pin" size={12} /> {w.place}</p>
+				<div class="who">
+					<span class="faces" aria-hidden="true">
+						{#each w.people as id (id)}<Avatar {id} size={26} />{/each}
+					</span>
+					<span class="xs"><strong class="num">{w.count}</strong> kommer</span>
+				</div>
+			</li>
+		{/each}
+	</ul>
 </section>
 
 <h2 class="section-title">Fyra saker du kan göra</h2>
@@ -189,6 +218,106 @@
 
 	.hero-art:hover .p3 {
 		transform: rotate(11deg) translateY(-4px);
+	}
+
+	.cta {
+		margin-bottom: var(--space-2);
+	}
+
+	.more {
+		margin: 0;
+	}
+
+	.week {
+		margin-bottom: var(--space-6);
+	}
+
+	.week-lead {
+		max-width: 60ch;
+		color: var(--text-muted);
+	}
+
+	.board {
+		display: grid;
+		gap: var(--space-4) var(--space-3);
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+		padding: var(--space-5) var(--space-4) var(--space-4);
+		background-color: #b08a5c;
+		background-image:
+			radial-gradient(rgb(0 0 0 / 0.12) 1px, transparent 1.5px),
+			radial-gradient(rgb(255 255 255 / 0.12) 1px, transparent 1.5px);
+		background-size: 7px 7px, 11px 11px;
+		background-position: 0 0, 3px 4px;
+		border: 6px solid #6b4a2f;
+		border-radius: var(--radius-lg);
+		box-shadow: inset 0 2px 8px rgb(0 0 0 / 0.35);
+	}
+
+	.note {
+		position: relative;
+		padding: var(--space-3);
+		color: #1f2430;
+		background: #fff8d8;
+		box-shadow: 0 3px 8px rgb(0 0 0 / 0.3);
+		transform: rotate(var(--tilt));
+		transition: transform var(--speed) var(--ease);
+	}
+
+	.note:nth-child(2) {
+		background: #e3f1ff;
+	}
+
+	.note:nth-child(3) {
+		background: #ffe4dc;
+	}
+
+	.note:nth-child(4) {
+		background: #e6f6df;
+	}
+
+	.note:hover {
+		transform: rotate(0deg) translateY(-3px);
+	}
+
+	.pin {
+		position: absolute;
+		top: -8px;
+		left: 50%;
+		width: 16px;
+		height: 16px;
+		background: radial-gradient(circle at 35% 35%, #ff8a80, #c8463a 60%, #8a2e25);
+		border-radius: 50%;
+		box-shadow: 0 2px 3px rgb(0 0 0 / 0.4);
+		transform: translateX(-50%);
+	}
+
+	.day {
+		margin: 0 0 2px;
+		color: #10305f;
+	}
+
+	.note h3 {
+		margin: 0 0 4px;
+		font-size: var(--text-md);
+	}
+
+	.where {
+		margin: 0 0 var(--space-2);
+		color: #3a4253;
+	}
+
+	.who {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.faces {
+		display: inline-flex;
+	}
+
+	.faces :global(.av + .av) {
+		margin-left: -6px;
 	}
 
 	.section-title {

@@ -1,5 +1,5 @@
 // Allt som är namn-specifikt bor här, så att arbetsnamnet kan bytas på ett ställe.
-export const SITE_NAME = '[ARBETSNAMN]';
+export const SITE_NAME = 'Västeråsarna';
 export const SLOGAN = 'Västerås. Lite mer som förr.';
 export const TAGLINE = 'Ingen reklam. Ingen algoritm. 18+.';
 export const CITY = 'Västerås';

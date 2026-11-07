@@ -483,3 +483,28 @@ legend {
 		animation: none;
 	}
 }
+
+/* Utskrift: bara själva innehållet (affischen blir exakt en A4) */
+@media print {
+	.skip,
+	.demo-bar,
+	.site-head,
+	.site-foot,
+	.toaster,
+	[data-testid='tour'] {
+		display: none !important;
+	}
+
+	html,
+	body {
+		margin: 0;
+		background: #fff !important;
+	}
+
+	main {
+		min-height: 0 !important;
+		max-width: none !important;
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+}

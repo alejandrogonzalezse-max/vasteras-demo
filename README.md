@@ -1,4 +1,4 @@
-# [ARBETSNAMN] – klickbar demo
+# Västeråsarna – klickbar demo
 
 Demo av en ideell mötesplats för Västerås: *"Västerås. Lite mer som förr."*
 Ingen reklam, ingen algoritm, ingen politik, 18+.
@@ -20,7 +20,7 @@ npm test           # Playwright: flöden + axe i ljust och mörkt tema, 1280 och
 
 | Fil | Vad |
 | --- | --- |
-| `src/lib/config.ts` | `SITE_NAME`, slogan, kartans tile-URL och gränser – byt namn här |
+| `src/lib/config.ts` | `SITE_NAME` (Västeråsarna), slogan, kartans tile-URL och gränser |
 | `src/lib/mock.ts` | All påhittad data: användare, 68 tärningsidéer, lappar, platser, grupper, forum, modkö |
 | `src/lib/dice.ts` | Tärningens viktning (årstid, väder, temperatur, högtid) |
 | `src/lib/state.svelte.ts` | Demons tillstånd, localStorage, demoklockan |

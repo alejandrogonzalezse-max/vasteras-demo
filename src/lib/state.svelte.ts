@@ -5,6 +5,7 @@ import { ME_ID, STORAGE_KEY, THEME_KEY } from './config.ts';
 import { buildActivities } from './schedule.ts';
 import { clock, dateText, holidayOf, seasonOf, sunset, whenLabel, type Ago } from './time.ts';
 import { fallbackWeather, loadWeather, weather } from './weather.svelte.ts';
+import type { Look } from './avatars.ts';
 import {
 	myFriends,
 	userById,
@@ -68,6 +69,17 @@ export interface DemoData {
 	sneak: boolean;
 	/** Pågående rundtur (steg) eller null. */
 	tour: number | null;
+	/** Grundarens namn från ?hej=<namn>, och vem välkomstfönstret redan visats för. */
+	founderName: string | null;
+	welcomedFor: string | null;
+	/** Egen pixelfigur från "Pixla din figur". */
+	myLook: Look | null;
+	/** Antal besök per profil, för besöksräknaren. */
+	visits: Record<string, number>;
+	/** Global ljudspärr i sidfoten. Inget ljud spelas ändå förrän man trycker play. */
+	sound: boolean;
+	/** "X loggade in"-notiser. */
+	loginToasts: boolean;
 }
 
 export interface Toast {
@@ -101,7 +113,13 @@ function defaults(): DemoData {
 		myPosts: [],
 		lappComments: {},
 		sneak: false,
-		tour: null
+		tour: null,
+		founderName: null,
+		welcomedFor: null,
+		myLook: null,
+		visits: {},
+		sound: true,
+		loginToasts: true
 	};
 }
 

@@ -1,6 +1,6 @@
 {
-	"name": "[ARBETSNAMN] – Västerås. Lite mer som förr.",
-	"short_name": "[ARBETSNAMN]",
+	"name": "Västeråsarna – Västerås. Lite mer som förr.",
+	"short_name": "Västeråsarna",
 	"description": "Demo av en ideell mötesplats för Västerås. Allt innehåll är påhittat.",
 	"lang": "sv",
 	"start_url": "/hem",

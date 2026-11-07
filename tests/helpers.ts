@@ -21,9 +21,9 @@ export const PAGES = [
 /** Går in i demon via startsidans knapp. */
 export async function enter(page: Page) {
 	await page.goto('/');
-	await page.getByRole('button', { name: 'Titta runt i demon' }).click();
+	await page.getByRole('button', { name: 'Titta runt själv' }).click();
 	await expect(page).toHaveURL(/\/hem$/);
-	await expect(page.getByText('Inloggad som')).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Huvudmeny' })).toBeVisible();
 }
 
 export function collectErrors(page: Page) {
@@ -33,4 +33,19 @@ export function collectErrors(page: Page) {
 		if (m.type() === 'error' && !m.text().includes('tile.openstreetmap.org') && !m.text().includes('Failed to load resource')) errors.push(m.text());
 	});
 	return errors;
+}
+
+/** På mobil ligger konto och tema i menyn – öppna den om den finns. */
+export async function openMenuIfMobile(page: Page) {
+	const btn = page.getByTestId('menu-btn');
+	if (await btn.isVisible()) {
+		if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+		return true;
+	}
+	return false;
+}
+
+export async function clickThemeToggle(page: Page) {
+	if (await openMenuIfMobile(page)) await page.getByTestId('theme-toggle-menu').click();
+	else await page.getByTestId('theme-toggle').click();
 }
