@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { WHEN_OPTIONS, minutesForChoice } from '#lib/time.ts';
 	import { agoLabel } from '#lib/time.ts';
 	import { tick } from 'svelte';
 	import { SITE_NAME, ME_ID } from '#lib/config.ts';
-	import { afterNattbad, groups, places, type Visibility } from '#lib/mock.ts';
+	import { afterGrill, places, type Visibility } from '#lib/mock.ts';
 	import { demo } from '#lib/state.svelte.ts';
 	import ActivityCard from '#lib/components/ActivityCard.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
@@ -17,35 +18,16 @@
 	let bring = $state('');
 	let text = $state('');
 	let visibility = $state<Visibility>('alla');
-	let groupId = $state(groups[0].id);
+	let groupId = $state(demo.allGroups[0].id);
 	let recurring = $state(false);
 	let fromDice = $state(false);
+	let draftNote = $state('');
 	let error = $state('');
 	let posted = $state('');
 	let comment = $state('');
 
-	const whenOptions = [
-		{ id: 'h1', label: 'Om en timme' },
-		{ id: 'h2', label: 'Om två timmar' },
-		{ id: 'tonight', label: 'I kväll kl 19' },
-		{ id: 'tomorrow', label: 'I morgon kl 18' },
-		{ id: 'weekend', label: 'Nästa lördag kl 12' }
-	];
-
-	function minutesFor(id: string, now: number) {
-		const d = new Date(now);
-		const at = (days: number, h: number) => {
-			const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, h, 0);
-			return Math.round((t.getTime() - now) / 60000);
-		};
-		switch (id) {
-			case 'h1': return 60;
-			case 'h2': return 120;
-			case 'tonight': { const m = at(0, 19); return m > 15 ? m : at(1, 19); }
-			case 'tomorrow': return at(1, 18);
-			default: { const days = ((6 - d.getDay() + 7) % 7) || 7; return at(days, 12); }
-		}
-	}
+	const whenOptions = WHEN_OPTIONS;
+	const minutesFor = minutesForChoice;
 
 	// Har man tittat på tavlan är nya "Jag kommer" sedda.
 	$effect(() => {
@@ -60,6 +42,16 @@
 			title = demo.d.draft.title;
 			place = demo.d.draft.place;
 			bring = demo.d.draft.bring;
+			if (demo.d.draft.groupId) {
+				visibility = 'grupp';
+				groupId = demo.d.draft.groupId;
+			}
+			const gname = demo.d.draft.groupId ? demo.findGroup(demo.d.draft.groupId)?.name : null;
+			draftNote = gname
+				? `Lappen blir synlig för gruppen ${gname}. Skriv vad ni ska göra.`
+				: demo.d.draft.title
+					? 'Förifyllt från tärningen. Ändra det du vill.'
+					: 'Platsen är ifylld. Skriv vad du vill göra.';
 			fromDice = true;
 			demo.d.draft = null;
 		}
@@ -73,7 +65,6 @@
 		})
 	);
 
-	const comments = $derived([...demo.d.nattbadComments, ...afterNattbad.comments]);
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
@@ -109,12 +100,7 @@
 		document.getElementById(`lapp-${note.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	}
 
-	function addComment(e: SubmitEvent) {
-		e.preventDefault();
-		if (!comment.trim()) return;
-		demo.d.nattbadComments.unshift({ by: ME_ID, ago: 'nyss', text: comment.trim() });
-		comment = '';
-	}
+
 </script>
 
 <svelte:head><title>Anslagstavlan – {SITE_NAME}</title></svelte:head>
@@ -140,36 +126,23 @@
 		</Box>
 
 		<Box title="Gästboken efteråt" icon="camera" id="efterat">
-			<h3 class="after-title">{afterNattbad.title}</h3>
-			<p>{afterNattbad.text}</p>
+			<h3 class="after-title">{afterGrill.title}</h3>
+			<p>{afterGrill.text}</p>
 			<ul class="plain photos">
-				{#each afterNattbad.photos as ph (ph.caption)}
+				{#each afterGrill.photos as ph (ph.caption)}
 					<li><Photo caption={ph.caption} scene={ph.scene} /></li>
 				{/each}
 			</ul>
-			<h3 class="gb-title">Hälsningar</h3>
-			<form class="gb-form" onsubmit={addComment}>
-				<label for="gb" class="label">Skriv i gästboken</label>
-				<textarea id="gb" maxlength="300" bind:value={comment} placeholder="Tack för senast!"></textarea>
-				<button type="submit" class="btn btn-small">Skriv</button>
-			</form>
-			<ul class="plain item-list">
-				{#each comments as c, i (i)}
-					<li class="gb">
-						<Avatar id={c.by} size={32} />
-						<div>
-							<p class="small gb-head"><UserLink id={c.by} /> <span class="muted">· {agoLabel(c.ago, demo.now)}</span></p>
-							<p class="gb-text">{c.text}</p>
-						</div>
-					</li>
-				{/each}
-			</ul>
+			<p class="after-link">
+				<a class="btn btn-primary" href={`/lapp/${afterGrill.activityId}#efterat`}><Icon name="camera" size={12} /> Öppna gästboken och lägg upp bilder</a>
+				<span class="small muted"><span class="num">{afterGrill.comments.length + (demo.d.afterPosts[afterGrill.activityId]?.length ?? 0)}</span> hälsningar</span>
+			</p>
 		</Box>
 	</div>
 
 	<aside class="stack" aria-label="Sätt upp en lapp">
 		<Box title="Sätt upp en lapp" icon="plus" id="ny-lapp">
-			{#if fromDice}<p class="notice draft small">Förifyllt från tärningen. Ändra det du vill.</p>{/if}
+			{#if fromDice}<p class="notice draft small">{draftNote}</p>{/if}
 			<form onsubmit={submit} novalidate>
 				<div class="field">
 					<label for="f-title">Rubrik</label>
@@ -206,7 +179,7 @@
 						<div class="field group-pick">
 							<label for="f-group">Grupp</label>
 							<select id="f-group" bind:value={groupId}>
-								{#each groups as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
+								{#each demo.allGroups as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
 							</select>
 						</div>
 					{/if}
@@ -240,6 +213,14 @@
 		margin-bottom: var(--space-3);
 	}
 
+	.after-link {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-3);
+		margin: 0;
+	}
+
 	.after-title {
 		margin-bottom: 4px;
 	}
@@ -259,34 +240,11 @@
 		transform: rotate(1deg);
 	}
 
-	.gb-title {
-		font-size: var(--text-md);
-	}
 
-	.gb-form {
-		display: grid;
-		gap: 6px;
-		margin-bottom: var(--space-3);
-	}
 
-	.gb-form textarea {
-		min-height: 64px;
-	}
 
-	.gb-form button {
-		justify-self: start;
-	}
 
-	.gb {
-		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
-		gap: var(--space-2);
-	}
 
-	.gb-head,
-	.gb-text {
-		margin: 0;
-	}
 
 	fieldset .check + .check {
 		margin-top: 6px;

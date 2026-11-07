@@ -253,6 +253,7 @@
 					<p class="small mm-who"><span class="dot"></span> Inloggad som <a href={`/profil/${ME_ID}`}><strong>{me.name}</strong></a></p>
 					<button type="button" class="btn btn-small mm-full" onclick={() => { menuOpen = false; logout(); }}>Visa som utloggad</button>
 					<button type="button" class="btn btn-small mm-full" onclick={() => { menuOpen = false; startTour(); }}><Icon name="eye" size={12} /> Visa mig runt</button>
+					<a class="btn btn-small mm-full" href="/vanner"><Icon name="group" size={12} /> Hitta vänner</a>
 				{:else}
 					<p class="small mm-who"><span class="dot off"></span> Du tittar som utloggad</p>
 					<button type="button" class="btn btn-small btn-primary mm-full" onclick={() => { menuOpen = false; demo.d.loggedIn = true; goto('/hem'); }}>Gå in i demon</button>

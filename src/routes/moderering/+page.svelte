@@ -14,7 +14,8 @@
 		anmälan: 'Anmälan',
 		plats: 'Ny plats',
 		tärningsidé: 'Tärningsidé',
-		gruppansökan: 'Gruppansökan'
+		gruppansökan: 'Gruppansökan',
+		kategoriförslag: 'Kategoriförslag'
 	};
 
 	function decide(q: QueueItem, d: 'approve' | 'remove') {

@@ -116,6 +116,17 @@ export function whenLabel(minutes: number, now: number): string {
 /** Påhittade tider anges som "minuter sedan" (tal) eller fri text. */
 export type Ago = number | string;
 
+/** "Minuter sedan" för något med fast tidpunkt (at, ms) eller en påhittad ålder (ago). */
+export function since(x: { ago?: Ago; at?: number }, now: number): Ago {
+	return x.at ? Math.max(0, (now - x.at) / 60000) : (x.ago ?? 'nyss');
+}
+
+/** Minuter sedan som tal (för sortering). */
+export function minutesAgo(x: { ago?: Ago; at?: number }, now: number): number {
+	const v = since(x, now);
+	return typeof v === 'number' ? v : 0;
+}
+
 /** Dåtid: "nyss", "23 min sedan", "i dag 10:42", "i går 22:14", "i tisdags", "28 okt". */
 export function agoLabel(ago: Ago, now: number): string {
 	if (typeof ago === 'string') return ago;
@@ -244,4 +255,31 @@ export function sunset(ms: number, lat = 59.61, lon = 16.545): string | null {
 	UT = ((UT % 24) + 24) % 24;
 	const utcMs = Date.UTC(y, m - 1, d) + UT * 3600000;
 	return clock(utcMs);
+}
+
+// ---------------------------------------------------------------- Tidsval i formulär
+
+export const WHEN_OPTIONS = [
+	{ id: 'h1', label: 'Om en timme' },
+	{ id: 'h2', label: 'Om två timmar' },
+	{ id: 'tonight', label: 'I kväll kl 19' },
+	{ id: 'tomorrow', label: 'I morgon kl 18' },
+	{ id: 'weekend', label: 'Nästa lördag kl 12' }
+];
+
+/** Minuter från nu för ett tidsval, i svensk tid. */
+export function minutesForChoice(id: string, now: number) {
+	const toMin = (ms: number) => Math.round((ms - now) / 60000);
+	switch (id) {
+		case 'h1':
+			return 60;
+		case 'h2':
+			return 120;
+		case 'tonight':
+			return toMin(nextTime(now, '19:00'));
+		case 'tomorrow':
+			return toMin(onDay(now, 1, '18:00'));
+		default:
+			return toMin(nextWeekday(now, 6, '12:00', 24 * 60));
+	}
 }

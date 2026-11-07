@@ -32,12 +32,29 @@ npm test           # Playwright: flöden + axe i ljust och mörkt tema, 1280 och
 | `src/lib/styles/tokens.css` | Designtokens: färger (Kvällsblå/Mälarnatt), typskala, avstånd, radier, skuggor |
 | `src/lib/styles/base.css` | Globala stilar och små klasser |
 | `src/lib/icons.ts` | Egenritade pixelikoner (12×12) |
+| `src/lib/images.ts` | Egna bilder: skalas till max 1080 px, kodas om (tar bort EXIF/GPS), sparas i IndexedDB |
+| `src/lib/lapp.ts` | Kommentarer, kalenderfil (.ics) och delning för lappar |
+| `src/lib/groups.ts` | Medlemmar och trådar för grupperna |
+| `src/lib/friends.ts` | Vänkoder och länkar till QR-koden |
+
+## Delbara adresser
+
+- `/lapp/<id>` – en lapp med karta, deltagare, väder och kommentarer (efteråt: gästboken med bilder)
+- `/grupp/<id>` – en grupp med medlemmar, träffar, gruppforum och ansökningar
+- `/forum/trad/<id>` – en forumtråd
+- `/vanner?kod=ABCD-123` – Hitta vänner med koden ifylld (det är dit QR-koden pekar)
+
+Det man skapar själv (grupper, trådar) finns bara i den egna webbläsaren. Netlify skickar
+okända adresser under `/lapp`, `/grupp` och `/forum/trad` till `200.html` så att sidan byggs i webbläsaren.
 
 ## Teknik
 
 SvelteKit + TypeScript + adapter-static, handskriven CSS, Leaflet 1.9.4 med
 OpenStreetMap-tiles, självhostade typsnitt via @fontsource (Atkinson Hyperlegible, Silkscreen).
-Inga tredjepartsskript och ingen spårning.
+Inga tredjepartsskript och ingen spårning. QR-koder ritas lokalt (qrcode-generator, MIT).
+
+Egna bilder lämnar aldrig webbläsaren: de ritas om på en canvas (vilket tar bort EXIF och
+GPS-position), sparas i IndexedDB (i minnet om IndexedDB saknas) och töms med "Återställ demon".
 
 Allt påhittat innehåll räknas relativt till riktig tid i Västerås, så sajten ser alltid aktuell ut.
 Vädret hämtas direkt från SMHI i webbläsaren (källa anges); går det inte visas exempelväder.

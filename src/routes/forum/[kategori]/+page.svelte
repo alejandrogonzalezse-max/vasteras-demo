@@ -3,10 +3,12 @@
 	import { SITE_NAME } from '#lib/config.ts';
 	import { demo } from '#lib/state.svelte.ts';
 	import Pager from '#lib/components/Pager.svelte';
+	import Icon from '#lib/components/Icon.svelte';
 	import UserLink from '#lib/components/UserLink.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const threads = $derived([...demo.d.myThreads.filter((t) => t.cat === data.cat.id), ...data.threads]);
 	let pageNo = $state(1);
 </script>
 
@@ -16,13 +18,14 @@
 <div class="page-head">
 	<h1>{data.cat.name}</h1>
 	<p>{data.cat.text}</p>
+	<p class="head-cta"><a class="btn btn-primary" href={`/forum/ny?kategori=${data.cat.id}`} data-testid="new-thread"><Icon name="plus" size={12} /> Ny tråd</a></p>
 </div>
 
 <div class="ttable">
 	<div class="thead">
 		<span>Ämne / Startad av</span><span class="c">Svar</span><span class="c">Visningar</span><span>Senaste inlägg</span>
 	</div>
-	{#each data.threads as t (t.id)}
+	{#each threads as t (t.id)}
 		<div class="trow">
 			<span><a href={`/forum/trad/${t.id}`}><strong>{t.title}</strong></a><br /><span class="xs">av <UserLink id={t.by} /></span></span>
 			<span class="c num"><span class="lbl">Svar:&nbsp;</span>{t.posts.length - 1 + (demo.d.forumReplies[t.id]?.length ?? 0)}</span>
@@ -31,7 +34,7 @@
 		</div>
 	{/each}
 </div>
-<div class="pg"><Pager total={1} bind:current={pageNo} /><span class="xs muted">Sida 1 av 1 · {data.threads.length} trådar</span></div>
+<div class="pg"><Pager total={1} bind:current={pageNo} /><span class="xs muted">Sida 1 av 1 · {threads.length} trådar</span></div>
 
 <style>
 	.crumbs {

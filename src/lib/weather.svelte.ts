@@ -95,10 +95,19 @@ export function pick(points: Point[], now: number): Wx | null {
 	return { source: 'smhi', temp: Math.round(best.temp), kind, text, symbol: best.symbol };
 }
 
-export const weather = $state<{ current: Wx | null; status: 'idle' | 'loading' | 'done' }>({
+export const weather = $state<{ current: Wx | null; status: 'idle' | 'loading' | 'done'; points: Point[] }>({
 	current: null,
-	status: 'idle'
+	status: 'idle',
+	points: []
 });
+
+/** SMHI:s prognos för en viss tidpunkt (närmaste värde inom 90 min), eller null. */
+export function forecastAt(ms: number): Wx | null {
+	const p = pick(weather.points, ms);
+	if (!p) return null;
+	const best = weather.points.reduce((b, x) => (Math.abs(x.t - ms) < Math.abs(b.t - ms) ? x : b));
+	return Math.abs(best.t - ms) <= 90 * 60000 ? p : null;
+}
 
 function readCache(): { at: number; points: Point[] } | null {
 	try {
@@ -136,6 +145,7 @@ export async function loadWeather(now: number) {
 			points = null;
 		}
 	}
+	weather.points = points ?? [];
 	weather.current = (points && pick(points, now)) || fallbackWeather(now);
 	weather.status = 'done';
 }

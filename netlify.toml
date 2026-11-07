@@ -17,3 +17,26 @@
   for = "/_app/immutable/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Sidor för sådant man skapat själv i demon (lappar, grupper, trådar) finns bara i
+# webbläsaren. De serveras av appens skal (200.html) som visar rätt sida.
+[[redirects]]
+  from = "/lapp/*"
+  to = "/200.html"
+  status = 200
+
+[[redirects]]
+  from = "/grupp/*"
+  to = "/200.html"
+  status = 200
+
+[[redirects]]
+  from = "/forum/trad/*"
+  to = "/200.html"
+  status = 200
+
+# Allt annat som inte finns: appens 404-sida.
+[[redirects]]
+  from = "/*"
+  to = "/200.html"
+  status = 404

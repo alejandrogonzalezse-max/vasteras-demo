@@ -89,7 +89,7 @@ test('lapp: kommentera, lägg i kalendern och dela', async ({ page, context, bro
 
 	await card.getByRole('button', { name: 'Dela' }).click();
 	await expect(page.getByText('Länken till lappen är kopierad')).toBeVisible();
-	expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('/anslagstavlan#lapp-a-bradspel');
+	expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('/lapp/a-bradspel');
 });
 
 test('skriv i dagboken med bild, och få en schysst', async ({ page }) => {

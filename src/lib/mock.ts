@@ -1,4 +1,5 @@
 import type { Ago, HolidayId } from './time.ts';
+import type { StoredImage } from './images.ts';
 import { founder } from './founder.svelte.ts';
 
 // All påhittad demodata bor här. Inga riktiga personer, inga riktiga foton.
@@ -362,6 +363,7 @@ export interface Activity {
 /** När en påhittad aktivitet äger rum, räknat från "nu" (se schedule.ts). */
 export type WhenSpec =
 	| { soon: number }
+	| { daysAgo: number; at: string }
 	| { at: string; ahead?: number }
 	| { weekday: number; at: string };
 
@@ -464,7 +466,7 @@ export const activitySpecs: ActivitySpec[] = [
 		bring: 'Varma kläder. Spö finns att låna.',
 		by: 'nisse-irsta',
 		visibility: 'grupp',
-		groupId: 'fiskegänget',
+		groupId: 'fiskegaget',
 		recurring: false,
 		attendees: ['nisse-irsta', 'backby-pelle', 'tobbe-tillberga'],
 		comments: 2,
@@ -501,6 +503,22 @@ export const activitySpecs: ActivitySpec[] = [
 		attendees: ['elinb', 'sannas'],
 		comments: 1,
 		text: 'Pratvänligt tempo, 5 km. Bullar efteråt för den som vill.'
+	},
+	{
+		id: 'a-grillkvall',
+		title: 'Grillkväll på Djäkneberget',
+		place: 'Djäkneberget, grillplatsen vid stora stenen',
+		placeId: 'djakneberget',
+		lat: 59.6138,
+		lng: 16.5355,
+		when: { daysAgo: 4, at: '18:00' },
+		bring: 'Egen korv och något att dricka',
+		by: 'gubben940',
+		visibility: 'alla',
+		recurring: false,
+		attendees: ['gubben940', 'backby-pelle', 'matteok', 'kicki61', 'tobbe-tillberga', 'linnea-l', 'erik-pa-raby'],
+		comments: 4,
+		text: 'Elden tänds 18. Pelle har lovat senap.'
 	}
 ];
 
@@ -648,6 +666,11 @@ export interface DiaryPost {
 	text: string;
 	photo?: { caption: string; scene: string };
 	schysst: number;
+	/** Vänner (standard) eller bara jag (privat anteckning). */
+	visibility?: 'vänner' | 'privat';
+	images?: StoredImage[];
+	place?: string;
+	at?: number;
 }
 
 export const diary: DiaryPost[] = [
@@ -663,20 +686,22 @@ export const diary: DiaryPost[] = [
 
 // ---------------------------------------------------------------- Gästboken efteråt (nattbadet)
 
-export const afterNattbad = {
-	title: 'Nattbad vid Framnäs – i somras',
-	text: 'Arton personer, en fullmåne och ett vatten på 19 grader. Här är bilder och hälsningar från kvällen.',
+/** Gästboken efteråt för den senaste grillkvällen (aktiviteten a-grillkvall). */
+export const afterGrill = {
+	activityId: 'a-grillkvall',
+	title: 'Grillkväll på Djäkneberget',
+	text: 'Sju nya ansikten, en eld som brann till tio och senap från 1987. Här är bilder och hälsningar från kvällen.',
 	photos: [
-		{ caption: 'Månen över bryggan', scene: 'brygga' },
-		{ caption: 'Filtar och termos efter doppet', scene: 'termos' },
-		{ caption: 'Någon tände en eld på stranden', scene: 'bal' },
-		{ caption: 'Solen gick ner kvart i nio', scene: 'solnedgang' }
+		{ caption: 'Elden när det mörknat', scene: 'bal' },
+		{ caption: 'Filtar och termos till alla', scene: 'termos' },
+		{ caption: 'Utsikten från berget', scene: 'solnedgang' },
+		{ caption: 'Någon tog med bullar', scene: 'fika' }
 	],
 	comments: [
-		{ by: 'sannas', ago: 'i somras', text: 'Bästa kvällen i somras. Tack till alla som höll koll på varandra i vattnet!' },
-		{ by: 'matteok', ago: 'i somras', text: 'Jag som aldrig badat i Mälaren förut. Nu fattar jag grejen.' },
-		{ by: 'kicki61', ago: 'i somras', text: 'Jag satt på bryggan med termosen och hade det minst lika trevligt.' },
-		{ by: 'elinb', ago: 'i somras', text: 'Samma tid nästa år? Jag tar med kanelbullar.' }
+		{ by: 'kicki61', ago: 5500 as Ago, text: 'Tack för en fin kväll! Jag har inte skrattat så mycket sedan 70-talet.' },
+		{ by: 'matteok', ago: 5440 as Ago, text: 'Första gången jag var med. Kommer igen!' },
+		{ by: 'tobbe-tillberga', ago: 5300 as Ago, text: 'Nyinflyttad och kände ingen. Nu känner jag sju. Tack!' },
+		{ by: 'backby-pelle', ago: 5200 as Ago, text: 'Senapen var från 1997, inte 1987. Så det så.' }
 	]
 };
 
@@ -690,15 +715,20 @@ export interface Group {
 	text: string;
 	note?: string;
 	icon: string;
+	/** Omslag: en av pixelbilderna eller en egen uppladdad bild. */
+	scene?: string;
+	cover?: StoredImage;
+	/** Skapad av dig i demon (du är gruppens moderator). */
+	mine?: boolean;
 }
 
 export const groups: Group[] = [
-	{ id: 'nattbadarna', name: 'Nattbadarna – tjejer', open: false, members: 46, text: 'Nattbad och kallbad för tjejer. Vi badar aldrig ensamma.', note: 'Sluten grupp: moderatorerna läser ansökan.', icon: 'water' },
-	{ id: 'bilfolk', name: 'Västerås bilfolk', open: true, members: 212, text: 'Gamla bilar, öppna garage, fika på parkeringen. Ingen buskörning.', icon: 'star' },
-	{ id: 'bradspel', name: 'Brädspelsklubben', open: true, members: 88, text: 'Spelkvällar varje vecka. Nybörjare är extra välkomna.', icon: 'dice' },
-	{ id: 'sondagspromenaderna', name: 'Söndagspromenaderna', open: true, members: 134, text: 'En promenad varje söndag, olika ställen, alltid fika.', icon: 'tree' },
-	{ id: 'fiskegänget', name: 'Fiskegänget', open: false, members: 29, text: 'Fiske från bryggor och båt. Vi lånar ut spön.', note: 'Sluten grupp: för att hålla fiskeställena hemliga.', icon: 'water' },
-	{ id: '18-25', name: '18–25 i Västerås', open: false, members: 157, text: 'För dig mellan 18 och 25 som vill hitta folk i samma läge.', note: 'Ålder ej verifierad – gruppen bygger på förtroende.', icon: 'group' }
+	{ id: 'nattbadarna', name: 'Nattbadarna – tjejer', open: false, members: 46, text: 'Nattbad och kallbad för tjejer. Vi badar aldrig ensamma.', note: 'Sluten grupp: moderatorerna läser ansökan.', icon: 'water', scene: 'brygga' },
+	{ id: 'bilfolk', name: 'Västerås bilfolk', open: true, members: 212, text: 'Gamla bilar, öppna garage, fika på parkeringen. Ingen buskörning.', icon: 'star', scene: 'moped' },
+	{ id: 'bradspel', name: 'Brädspelsklubben', open: true, members: 88, text: 'Spelkvällar varje vecka. Nybörjare är extra välkomna.', icon: 'dice', scene: 'bradspel' },
+	{ id: 'sondagspromenaderna', name: 'Söndagspromenaderna', open: true, members: 134, text: 'En promenad varje söndag, olika ställen, alltid fika.', icon: 'tree', scene: 'fika' },
+	{ id: 'fiskegaget', name: 'Fiskegänget', open: false, members: 29, text: 'Fiske från bryggor och båt. Vi lånar ut spön.', note: 'Sluten grupp: för att hålla fiskeställena hemliga.', icon: 'water', scene: 'solnedgang' },
+	{ id: '18-25', name: '18–25 i Västerås', open: false, members: 157, text: 'För dig mellan 18 och 25 som vill hitta folk i samma läge.', note: 'Ålder ej verifierad – gruppen bygger på förtroende.', icon: 'group', scene: 'kubb' }
 ];
 
 // ---------------------------------------------------------------- Forum
@@ -722,6 +752,9 @@ export interface ForumPost {
 	by: string;
 	ago: Ago;
 	text: string;
+	/** Tidpunkt (ms) för sådant du skrivit själv i demon. */
+	at?: number;
+	images?: StoredImage[];
 }
 
 export interface ForumThread {
@@ -824,7 +857,7 @@ export const defaultGuestbook = (id: string) => {
 
 // ---------------------------------------------------------------- Moderering
 
-export type QueueType = 'anmälan' | 'plats' | 'tärningsidé' | 'gruppansökan';
+export type QueueType = 'anmälan' | 'plats' | 'tärningsidé' | 'gruppansökan' | 'kategoriförslag';
 
 export interface QueueItem {
 	id: string;

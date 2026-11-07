@@ -25,7 +25,7 @@
 		[
 			...demo.allActivities.map((a) => ({
 				title: a.title,
-				href: `/anslagstavlan#lapp-${a.id}`,
+				href: `/lapp/${a.id}`,
 				kind: 'Lapp',
 				kommer: demo.attendeesOf(a).length,
 				kommentarer: a.comments
@@ -60,7 +60,7 @@
 				<li>
 					<span class="pos num">{i + 1}</span>
 					<div>
-						<a href={`/anslagstavlan#lapp-${a.id}`}><strong>{a.title}</strong></a>
+						<a href={`/lapp/${a.id}`}><strong>{a.title}</strong></a>
 						<p class="xs muted">{whenLabel(demo.minutesUntil(a), demo.now)} · {a.place}</p>
 					</div>
 					<span class="score num" aria-label={`${n} kommer`}>{n}</span>

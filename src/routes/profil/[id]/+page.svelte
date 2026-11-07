@@ -1,7 +1,13 @@
 <script lang="ts">
-	import { agoLabel, type Ago } from '#lib/time.ts';
+	import { agoLabel, minutesAgo, since, type Ago } from '#lib/time.ts';
 	import { ME_ID, SITE_NAME } from '#lib/config.ts';
-	import { defaultGuestbook, guestbooks, myFriends, placeById, userById } from '#lib/mock.ts';
+	import { defaultGuestbook, diary, guestbooks, placeById, userById } from '#lib/mock.ts';
+	import { friendCode, friendLink } from '#lib/friends.ts';
+	import DiaryComposer from '#lib/components/DiaryComposer.svelte';
+	import DiaryPostView from '#lib/components/DiaryPostView.svelte';
+	import FriendButton from '#lib/components/FriendButton.svelte';
+	import ImageUpload, { missingAlt, saveUploads, type UploadItem } from '#lib/components/ImageUpload.svelte';
+	import QrCode from '#lib/components/QrCode.svelte';
 	import { demo, type ProfileTheme } from '#lib/state.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Box from '#lib/components/Box.svelte';
@@ -29,8 +35,28 @@
 
 	const status = $derived(isMe ? demo.d.msn : u.status);
 	const entries = $derived([...(demo.d.guestbook[u.id] ?? []), ...(guestbooks[u.id] ?? defaultGuestbook(u.id))]);
-	const isFriend = $derived(myFriends.includes(u.id) || (u.id === 'tobbe-tillberga' && demo.d.friendRequest === 'accepted'));
-	let requested = $state<Record<string, boolean>>({});
+	const isFriend = $derived(demo.isFriend(u.id));
+
+	// Dagboken: dina egna inlägg (även privata) eller en väns, i datumordning.
+	const posts = $derived(
+		(isMe ? [...demo.d.myPosts, ...diary.filter((p) => p.by === ME_ID)] : diary.filter((p) => p.by === u.id)).sort(
+			(a, b) => minutesAgo(a, demo.now) - minutesAgo(b, demo.now)
+		)
+	);
+
+	// Byt profilbild
+	let picOpen = $state(false);
+	let picItems = $state<UploadItem[]>([]);
+	let picError = $state('');
+	async function savePic() {
+		picError = '';
+		if (!picItems.length) return (picError = 'Välj en bild först.');
+		if (missingAlt(picItems)) return (picError = 'Beskriv bilden kort – den behövs för den som inte ser den.');
+		demo.d.profileImage = (await saveUploads(picItems))[0];
+		picItems = [];
+		picOpen = false;
+		demo.toast('Din nya profilbild syns nu överallt.');
+	}
 
 	// Lunarstorm-klassikern: senaste besökarna. Påhittade, utom att du själv syns hos andra.
 	const TIMES = [34, 117, 260, 790, 1430];
@@ -105,6 +131,19 @@
 			<Box title="Profil" icon="user" id="profilruta">
 				<div class="pic"><Avatar id={u.id} size={150} /></div>
 				{#if isMe}
+					<div class="pic-acts">
+						<button type="button" class="linkbtn small" aria-expanded={picOpen} onclick={() => (picOpen = !picOpen)} data-testid="change-pic">
+							<Icon name="camera" size={12} /> {demo.d.profileImage ? 'Byt profilbild' : 'Ladda upp profilbild'}
+						</button>
+						{#if demo.d.profileImage}<button type="button" class="linkbtn small" onclick={() => (demo.d.profileImage = null)}>Använd pixelfiguren</button>{/if}
+					</div>
+					{#if picOpen}
+						<div class="pic-upload">
+							<ImageUpload bind:items={picItems} max={1} square label="Välj bild eller ta foto" altLabel="Beskriv bilden" />
+							{#if picError}<p class="notice err small" role="alert">{picError}</p>{/if}
+							<button type="button" class="btn btn-small btn-primary" onclick={savePic}>Spara profilbilden</button>
+						</div>
+					{/if}
 					{#if editing}
 						<AvatarEditor onclose={() => (editing = false)} />
 					{:else}
@@ -129,13 +168,7 @@
 				</p>
 				{#if !isMe}
 					<div class="row">
-						{#if isFriend}
-							<span class="tag"><Icon name="check" size={10} /> Ni är vänner</span>
-						{:else if requested[u.id]}
-							<span class="tag warn">Vänförfrågan skickad</span>
-						{:else}
-							<button type="button" class="btn btn-small btn-primary" onclick={() => (requested[u.id] = true)}>Lägg till som vän</button>
-						{/if}
+						<FriendButton id={u.id} />
 						<a class="btn btn-small" href="#gastbok">Skriv i gästboken</a>
 						{#if isFriend}
 							<button type="button" class="btn btn-small" onclick={knuffa} data-testid="knuffa"><Icon name="star" size={10} /> Knuffa</button>
@@ -156,6 +189,16 @@
 					<input type="checkbox" bind:checked={demo.d.sneak} />
 					<span>Smygläge: visa inte mina besök på andras profiler</span>
 				</label>
+			</Box>
+			<Box title="Vänkod" icon="plus" id="vankod">
+				<div class="code-wrap">
+					<QrCode value={friendLink(u.id)} label={`QR-kod: bli vän med ${u.name}`} size={132} />
+					<div>
+						<p class="small">{isMe ? 'Träffas ni på riktigt? Låt kompisen skanna koden, så blir ni vänner.' : `Skanna för att bli vän med ${u.name}.`}</p>
+						<p class="code num" data-testid="friend-code">{friendCode(u.id)}</p>
+						{#if isMe}<a class="small" href="/vanner">Hitta vänner</a>{/if}
+					</div>
+				</div>
 			</Box>
 			<Box title="Topp 8 platser" icon="tree">
 				<ol class="plain top8 places">
@@ -183,6 +226,23 @@
 					{/each}
 				</ol>
 			</Box>
+			<Box title={isMe ? 'Min dagbok' : `${u.name}s dagbok`} icon="book" id="dagbok">
+				{#snippet extra()}<span class="num">{posts.length}</span> inlägg{/snippet}
+				{#if isMe}
+					<DiaryComposer />
+				{/if}
+				{#if isMe || isFriend}
+					{#if posts.length}
+						<ul class="plain item-list diary">{#each posts as post (post.id)}<DiaryPostView {post} />{/each}</ul>
+					{:else}
+						<p class="small muted">Inga inlägg än.</p>
+					{/if}
+				{:else}
+					<p class="small">Dagboken syns bara för {u.name}s vänner.</p>
+					<FriendButton id={u.id} />
+				{/if}
+			</Box>
+
 			<Box title="Gästbok" icon="book" id="gastbok">
 				{#snippet extra()}<span class="num">{entries.length}</span> inlägg{/snippet}
 				<form class="gb-form" onsubmit={write}>
@@ -196,7 +256,7 @@
 							<Avatar id={e.by} size={36} />
 							<div>
 								<p class="small gb-head">
-									<UserLink id={e.by} /> <span class="muted">· {agoLabel(e.ago, demo.now)}</span>
+									<UserLink id={e.by} addFriend={e.by !== ME_ID} /> <span class="muted">· {agoLabel(since(e, demo.now), demo.now)}</span>
 									{#if isMe && i - (demo.d.guestbook[u.id]?.length ?? 0) >= 0 && i - (demo.d.guestbook[u.id]?.length ?? 0) < newCount}<span class="tag warn">Ny!</span>{/if}
 								</p>
 								<p class="gb-text">{e.text}</p>
@@ -359,6 +419,44 @@
 
 	.facts dd {
 		margin: 0;
+	}
+
+	.pic-acts {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+		margin-bottom: var(--space-2);
+	}
+
+	.pic-upload {
+		display: grid;
+		gap: var(--space-2);
+		margin-bottom: var(--space-3);
+	}
+
+	.pic-upload > button {
+		justify-self: start;
+	}
+
+	.code-wrap {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: var(--space-3);
+		align-items: center;
+	}
+
+	.code-wrap p {
+		margin: 0 0 var(--space-2);
+	}
+
+	.code {
+		display: inline-block;
+		padding: 4px 10px;
+		font-size: var(--text-lg);
+		letter-spacing: 0.08em;
+		background: var(--surface-2);
+		border: 1px dashed var(--head-border);
+		border-radius: var(--radius-sm);
 	}
 
 	.pixla {

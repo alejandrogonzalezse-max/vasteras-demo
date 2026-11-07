@@ -6,10 +6,16 @@ import { buildActivities } from './schedule.ts';
 import { clock, dateText, holidayOf, seasonOf, sunset, whenLabel, type Ago } from './time.ts';
 import { fallbackWeather, loadWeather, weather } from './weather.svelte.ts';
 import type { Look } from './avatars.ts';
+import { buildPast } from './schedule.ts';
+import { clearImages, type StoredImage } from './images.ts';
 import {
 	myFriends,
 	userById,
 	type DiaryPost,
+	type ForumThread,
+	type Group,
+	groups as mockGroups,
+	forumThreads,
 	seasonPresets,
 	type SeasonPreset,
 	type Activity,
@@ -27,7 +33,11 @@ export interface GuestEntry {
 	by: string;
 	ago: Ago;
 	text: string;
+	at?: number;
+	images?: StoredImage[];
 }
+
+export type FriendStatus = 'me' | 'friends' | 'pending' | 'none';
 
 export interface LogEntry {
 	when: Ago;
@@ -39,6 +49,8 @@ export interface Draft {
 	title: string;
 	place: string;
 	bring: string;
+	/** Lapp för en viss grupp. */
+	groupId?: string;
 }
 
 export interface DemoData {
@@ -52,7 +64,7 @@ export interface DemoData {
 	decisions: Record<string, 'approve' | 'remove'>;
 	userQueue: QueueItem[];
 	extraLog: LogEntry[];
-	groups: Record<string, 'member' | 'pending'>;
+	groups: Record<string, 'member' | 'pending' | 'mod'>;
 	guestbook: Record<string, GuestEntry[]>;
 	profileTheme: ProfileTheme;
 	draft: Draft | null;
@@ -80,6 +92,24 @@ export interface DemoData {
 	sound: boolean;
 	/** "X loggade in"-notiser. */
 	loginToasts: boolean;
+	/** Kanske-svar på lappar. */
+	maybe: Record<string, boolean>;
+	/** Vänförfrågningar och nya vänner i demon. */
+	friends: Record<string, 'pending' | 'friends'>;
+	/** Grupper du skapat. */
+	myGroups: Group[];
+	/** Ansökningar till slutna grupper där du är moderator. */
+	groupApps: Record<string, { by: string; text: string; status?: 'ok' | 'nej' }[]>;
+	/** Trådar i gruppernas egna forum. */
+	groupThreads: Record<string, ForumThread[]>;
+	/** Trådar du startat i forumet. */
+	myThreads: ForumThread[];
+	/** Gästboken efteråt per aktivitet: hälsningar och egna bilder. */
+	afterPosts: Record<string, GuestEntry[]>;
+	/** Egen profilbild (uppladdad, beskuren till kvadrat). */
+	profileImage: StoredImage | null;
+	/** Vänner du bjudit in till en grupp. */
+	groupInvites: Record<string, string[]>;
 }
 
 export interface Toast {
@@ -122,7 +152,16 @@ function defaults(): DemoData {
 		myLook: null,
 		visits: {},
 		sound: true,
-		loginToasts: true
+		loginToasts: true,
+		maybe: {},
+		friends: {},
+		myGroups: [],
+		groupApps: {},
+		groupThreads: {},
+		myThreads: [],
+		afterPosts: {},
+		profileImage: null,
+		groupInvites: {}
 	};
 }
 
@@ -186,22 +225,32 @@ class Demo {
 				if (!n || n.attendees.includes(who)) return;
 				n.attendees.push(who);
 				this.d.unseenAttend += 1;
-				this.toast(`${userById(who)?.name} trycker "Jag kommer" på din lapp!`, `/anslagstavlan#lapp-${noteId}`, 'Visa lappen');
+				this.toast(`${userById(who)?.name} trycker "Jag kommer" på din lapp!`, `/lapp/${noteId}`, 'Visa lappen');
 			}, ms);
 		step(first, 3500);
 		step(second, 9000);
 	}
 
-	addPost(text: string, scene?: string, caption?: string) {
+	addPost(
+		text: string,
+		scene?: string,
+		caption?: string,
+		opts: { visibility?: 'vänner' | 'privat'; images?: StoredImage[]; place?: string } = {}
+	) {
 		const post: DiaryPost = {
 			id: 'p' + Math.random().toString(36).slice(2, 8),
 			by: ME_ID,
 			ago: 'nyss',
+			at: Date.now(),
 			text,
 			photo: scene ? { caption: caption ?? '', scene } : undefined,
-			schysst: 0
+			schysst: 0,
+			visibility: opts.visibility ?? 'vänner',
+			images: opts.images?.length ? opts.images : undefined,
+			place: opts.place || undefined
 		};
 		this.d.myPosts.unshift(post);
+		if (post.visibility === 'privat') return post;
 		const fan = myFriends[Math.floor(Math.random() * 4)];
 		this.#later(() => {
 			const p = this.d.myPosts.find((x) => x.id === post.id);
@@ -242,6 +291,7 @@ class Demo {
 		this.#timers = [];
 		this.toasts = [];
 		this.d = defaults();
+		clearImages();
 		try {
 			localStorage.removeItem(STORAGE_KEY);
 			localStorage.removeItem(THEME_KEY);
@@ -351,6 +401,111 @@ class Demo {
 		const created = (a as Activity & { createdAt?: number }).createdAt;
 		if (created) return a.startIn - Math.round((this.now - created) / 60000);
 		return a.startIn;
+	}
+
+	// ----- Vänner
+	friendStatus(id: string): FriendStatus {
+		if (id === ME_ID) return 'me';
+		const o = this.d.friends[id];
+		if (o) return o;
+		if (myFriends.includes(id) || (id === 'tobbe-tillberga' && this.d.friendRequest === 'accepted')) return 'friends';
+		return 'none';
+	}
+
+	isFriend(id: string) {
+		return this.friendStatus(id) === 'friends';
+	}
+
+	/** Skickar en vänförfrågan. I demon accepterar den påhittade personen efter några sekunder. */
+	addFriend(id: string) {
+		if (this.friendStatus(id) !== 'none') return;
+		const name = userById(id)?.name ?? id;
+		this.d.friends[id] = 'pending';
+		this.toast(`Vänförfrågan skickad till ${name}.`);
+		this.#later(() => {
+			if (this.d.friends[id] !== 'pending') return;
+			this.d.friends[id] = 'friends';
+			this.toast(`${name} accepterade din vänförfrågan!`, `/profil/${id}`, 'Till profilen', { who: id });
+		}, 3500);
+	}
+
+	// ----- Lappar: Kanske, och sådant som redan har varit
+	isMaybe(a: Activity) {
+		return !!this.d.maybe[a.id] && !this.isAttending(a);
+	}
+
+	toggleMaybe(a: Activity) {
+		const on = !this.isMaybe(a);
+		this.d.maybe[a.id] = on;
+		if (on) this.d.attending[a.id] = false;
+	}
+
+	get pastActivities(): Activity[] {
+		return buildPast(this.now);
+	}
+
+	findActivity(id: string): Activity | undefined {
+		return this.allActivities.find((a) => a.id === id) ?? this.pastActivities.find((a) => a.id === id);
+	}
+
+	// ----- Grupper
+	get allGroups(): Group[] {
+		return [...this.d.myGroups, ...mockGroups];
+	}
+
+	findGroup(id: string) {
+		return this.allGroups.find((g) => g.id === id);
+	}
+
+	createGroup(g: { name: string; text: string; open: boolean; scene?: string; cover?: StoredImage; meet?: { title: string; place: string; when: number } }) {
+		const id = 'g-' + Math.random().toString(36).slice(2, 7);
+		this.d.myGroups.unshift({
+			id,
+			name: g.name,
+			text: g.text,
+			open: g.open,
+			members: 1,
+			icon: 'group',
+			scene: g.cover ? undefined : (g.scene ?? 'kubb'),
+			cover: g.cover,
+			mine: true,
+			note: g.open ? undefined : 'Sluten grupp: du som moderator läser ansökningarna.'
+		});
+		this.d.groups[id] = 'mod';
+		if (g.meet?.title)
+			this.addNote({ title: g.meet.title, place: g.meet.place || 'Meddelas i gruppen', when: g.meet.when, bring: '', visibility: 'grupp', groupId: id, recurring: false, text: '' });
+		// En sluten grupp får sin första ansökan efter en stund, så att man ser hur det fungerar.
+		if (!g.open)
+			this.#later(() => {
+				if (!this.findGroup(id)) return;
+				this.d.groupApps[id] = [{ by: 'sofia-bjurhovda', text: 'Hej! Låter som precis min grej. Får jag vara med?' }];
+				this.toast(`Ny ansökan till ${g.name}.`, `/grupp/${id}#ansokningar`, 'Visa');
+			}, 5000);
+		return id;
+	}
+
+	// ----- Forum
+	get allThreads(): ForumThread[] {
+		return [...this.d.myThreads, ...forumThreads];
+	}
+
+	findThread(id: string) {
+		return this.allThreads.find((t) => t.id === id) ?? Object.values(this.d.groupThreads).flat().find((t) => t.id === id);
+	}
+
+	createThread(cat: string, title: string, text: string, images?: StoredImage[], groupId?: string) {
+		const id = 't-' + Math.random().toString(36).slice(2, 7);
+		const t: ForumThread = {
+			id,
+			cat: groupId ? `grupp:${groupId}` : cat,
+			title,
+			by: ME_ID,
+			views: 1,
+			posts: [{ by: ME_ID, ago: 'nyss', at: Date.now(), text, images: images?.length ? images : undefined }]
+		};
+		if (groupId) this.d.groupThreads[groupId] = [t, ...(this.d.groupThreads[groupId] ?? [])];
+		else this.d.myThreads.unshift(t);
+		return id;
 	}
 
 	addToQueue(item: QueueItem) {

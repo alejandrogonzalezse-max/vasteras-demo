@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { agoLabel } from '#lib/time.ts';
+	import { addToCalendar, commentCount, shareLapp } from '#lib/lapp.ts';
+	import LappComments from './LappComments.svelte';
 	import { ME_ID } from '#lib/config.ts';
 	import { groups, userById, type Activity } from '#lib/mock.ts';
 	import { demo, whenLabel } from '#lib/state.svelte.ts';
 	import Icon from './Icon.svelte';
 	import UserLink from './UserLink.svelte';
-	import Avatar from './Avatar.svelte';
 
 	let {
 		a,
@@ -19,96 +19,13 @@
 	const group = $derived(a.groupId ? groups.find((g) => g.id === a.groupId) : undefined);
 	const isNew = $derived(a.by === ME_ID && a.id.startsWith('n'));
 
-	// Påhittade kommentarer från dem som kommer, plus det man själv skrivit.
-	const LINES = [
-		'Kommer! Tar med kaffe till fler än mig.',
-		'Kan bli tio minuter sen – vänta inte på mig.',
-		'Första gången jag hänger på. Hur känner jag igen er?',
-		'Vilket bra initiativ. Mer sånt här!',
-		'Jag tar med en extra filt om någon fryser.',
-		'Får man ta med en kompis som är ny i stan?'
-	];
-	const seeded = $derived(
-		a.comments
-			? a.attendees
-					.filter((id) => id !== a.by && id !== ME_ID)
-					.slice(0, 3)
-					.map((by, i, list) => ({ by, ago: (list.length - i) * 17, text: LINES[(a.id.length + i * 2) % LINES.length] }))
-			: []
-	);
-	const mine = $derived(demo.d.lappComments[a.id] ?? []);
-	const thread = $derived([...seeded, ...mine]);
-	const commentCount = $derived(a.comments + mine.length);
+	const count = $derived(commentCount(a));
 	let open = $state(false);
-	let draft = $state('');
-
-	function sendComment(e: SubmitEvent) {
-		e.preventDefault();
-		const text = draft.trim();
-		if (!text) return;
-		demo.d.lappComments[a.id] = [...mine, { by: ME_ID, ago: 'nyss', text }];
-		draft = '';
-	}
-
-	function icsDate(d: Date) {
-		return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-	}
-
-	function icsText(t: string) {
-		return t.replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n');
-	}
-
-	/** Skapar en .ics-fil för lappen och laddar ner den. */
-	function addToCalendar() {
-		const start = new Date(demo.now + mins * 60000);
-		start.setMinutes(Math.round(start.getMinutes() / 15) * 15, 0, 0);
-		const end = new Date(start.getTime() + 2 * 3600000);
-		const body = [
-			'BEGIN:VCALENDAR',
-			'VERSION:2.0',
-			'PRODID:-//vasteras-demo//SV',
-			'BEGIN:VEVENT',
-			`UID:${a.id}@vasteras-demo`,
-			`DTSTAMP:${icsDate(new Date())}`,
-			`DTSTART:${icsDate(start)}`,
-			`DTEND:${icsDate(end)}`,
-			`SUMMARY:${icsText(a.title)}`,
-			`LOCATION:${icsText(a.place)}`,
-			`DESCRIPTION:${icsText((a.bring ? 'Ta med: ' + a.bring + '. ' : '') + 'Demo – påhittad lapp.')}`,
-			'END:VEVENT',
-			'END:VCALENDAR'
-		].join('\r\n');
-		const url = URL.createObjectURL(new Blob([body], { type: 'text/calendar' }));
-		const link = Object.assign(document.createElement('a'), { href: url, download: `${a.id}.ics` });
-		document.body.append(link);
-		link.click();
-		link.remove();
-		setTimeout(() => URL.revokeObjectURL(url), 1000);
-		demo.toast(`"${a.title}" är nedladdad som kalenderfil.`);
-	}
-
-	async function share() {
-		const url = `${location.origin}/anslagstavlan#lapp-${a.id}`;
-		if (navigator.share) {
-			try {
-				await navigator.share({ title: a.title, text: `${a.title} – ${a.place}`, url });
-				return;
-			} catch {
-				/* avbrutet – fall tillbaka till kopiering */
-			}
-		}
-		try {
-			await navigator.clipboard.writeText(url);
-			demo.toast('Länken till lappen är kopierad.');
-		} catch {
-			demo.toast(`Kopiera länken: ${url}`);
-		}
-	}
 </script>
 
 <article class="note" class:compact class:mine={isNew} aria-labelledby={`t-${a.id}`}>
 	<div class="when num">{whenLabel(mins, demo.now)}</div>
-	<svelte:element this={`h${headingLevel}`} class="title" id={`t-${a.id}`}>{a.title}</svelte:element>
+	<svelte:element this={`h${headingLevel}`} class="title" id={`t-${a.id}`}><a href={`/lapp/${a.id}`} class="t-link">{a.title}</a></svelte:element>
 	<p class="meta">
 		<span><Icon name="pin" size={12} /> {a.place}</span>
 		{#if a.recurring}<span class="tag">återkommer</span>{/if}
@@ -119,7 +36,7 @@
 	{#if !compact}
 		{#if a.text}<p class="text">{a.text}</p>{/if}
 		{#if a.bring}<p class="bring"><strong>Ta med:</strong> {a.bring}</p>{/if}
-		<p class="by small muted">Uppsatt av <UserLink id={a.by} /></p>
+		<p class="by small muted">Uppsatt av <UserLink id={a.by} addFriend /></p>
 	{/if}
 	<div class="act">
 		<button
@@ -142,32 +59,13 @@
 	{#if !compact}
 		<div class="tools">
 			<button type="button" class="linkbtn small" aria-expanded={open} aria-controls={`c-${a.id}`} onclick={() => (open = !open)}>
-				<Icon name="forum" size={12} /> Kommentarer ({commentCount})
+				<Icon name="forum" size={12} /> Kommentarer ({count})
 			</button>
-			<button type="button" class="linkbtn small" onclick={addToCalendar}><Icon name="calendar" size={12} /> Lägg i kalendern</button>
-			<button type="button" class="linkbtn small" onclick={share}><Icon name="share" size={12} /> Dela</button>
+			<button type="button" class="linkbtn small" onclick={() => addToCalendar(a)}><Icon name="calendar" size={12} /> Lägg i kalendern</button>
+			<button type="button" class="linkbtn small" onclick={() => shareLapp(a)}><Icon name="share" size={12} /> Dela</button>
 		</div>
 		{#if open}
-			<div class="comments" id={`c-${a.id}`}>
-				{#if thread.length}
-					<ul class="plain">
-						{#each thread as c, i (i)}
-							<li>
-								<Avatar id={c.by} size={28} />
-								<p><UserLink id={c.by} /> <span class="xs muted">{agoLabel(c.ago, demo.now)}</span><br />{c.text}</p>
-							</li>
-						{/each}
-					</ul>
-					{#if a.comments > seeded.length}<p class="xs muted">Visar de senaste kommentarerna.</p>{/if}
-				{:else}
-					<p class="small muted">Inga kommentarer än. Skriv den första!</p>
-				{/if}
-				<form class="c-form" onsubmit={sendComment}>
-					<label class="sr-only" for={`ci-${a.id}`}>Skriv en kommentar</label>
-					<input id={`ci-${a.id}`} type="text" maxlength="200" placeholder="Skriv en kommentar…" bind:value={draft} />
-					<button type="submit" class="btn btn-small">Skicka</button>
-				</form>
-			</div>
+			<LappComments {a} />
 		{/if}
 	{/if}
 </article>
@@ -191,6 +89,17 @@
 		font-size: var(--text-xs);
 		color: var(--head-text);
 		margin-bottom: 4px;
+	}
+
+	.t-link {
+		color: var(--link);
+		text-decoration: none;
+	}
+
+	.t-link:hover,
+	.t-link:focus-visible {
+		color: var(--link);
+		text-decoration: underline;
 	}
 
 	.title {
@@ -249,29 +158,8 @@
 		min-height: 32px;
 	}
 
-	.comments {
-		margin-top: var(--space-2);
-	}
 
-	.comments ul {
-		display: grid;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
-	}
 
-	.comments li {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: var(--space-2);
-		font-size: var(--text-sm);
-	}
 
-	.comments li p {
-		margin: 0;
-	}
 
-	.c-form {
-		display: flex;
-		gap: var(--space-2);
-	}
 </style>

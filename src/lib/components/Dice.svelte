@@ -165,7 +165,7 @@
 				<p class="bored-title">{bored.title}</p>
 				<p class="small muted">{whenLabel(demo.minutesUntil(bored), demo.now)} · {bored.place}</p>
 				<a href={`/kartan?nal=${bored.id}`}>Visa nålen på kartan</a> ·
-				<a href={`/anslagstavlan#lapp-${bored.id}`}>Till lappen</a>
+				<a href={`/lapp/${bored.id}`}>Till lappen</a>
 			{:else}
 				<p class="small">Inget startar inom tre timmar. Slå tärningen och ta initiativet själv!</p>
 			{/if}

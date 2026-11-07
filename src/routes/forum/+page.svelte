@@ -2,13 +2,16 @@
 	import { agoLabel } from '#lib/time.ts';
 	import { demo } from '#lib/state.svelte.ts';
 	import { SITE_NAME } from '#lib/config.ts';
-	import { forumCategories, forumThreads } from '#lib/mock.ts';
+	import { forumCategories } from '#lib/mock.ts';
+	import SuggestCategory from '#lib/components/SuggestCategory.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 
-	const rows = forumCategories.map((c) => {
-		const threads = forumThreads.filter((t) => t.cat === c.id);
-		return { c, threads: threads.length, posts: threads.reduce((s, t) => s + t.posts.length, 0), latest: threads[0] };
-	});
+	const rows = $derived(
+		forumCategories.map((c) => {
+			const threads = demo.allThreads.filter((t) => t.cat === c.id);
+			return { c, threads: threads.length, posts: threads.reduce((s, t) => s + t.posts.length, 0), latest: threads[0] };
+		})
+	);
 </script>
 
 <svelte:head><title>Forum – {SITE_NAME}</title></svelte:head>
@@ -16,6 +19,7 @@
 <div class="page-head">
 	<h1>Forum</h1>
 	<p>Snack om stan, utan reklam och utan rikspolitik. Trådar sorteras efter senaste svar – aldrig efter vad som "engagerar".</p>
+	<p class="head-cta"><a class="btn btn-primary" href="/forum/ny" data-testid="new-thread"><Icon name="plus" size={12} /> Ny tråd</a></p>
 </div>
 
 <div class="ftable" role="table" aria-label="Forumkategorier">
@@ -42,6 +46,8 @@
 		</div>
 	{/each}
 </div>
+
+<SuggestCategory />
 
 <style>
 	.ftable {

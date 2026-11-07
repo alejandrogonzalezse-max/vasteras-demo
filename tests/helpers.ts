@@ -18,7 +18,14 @@ export const PAGES = [
 	'/ordningsregler',
 	'/integritet',
 	'/kontakt',
-	'/anmal'
+	'/anmal',
+	'/lapp/a-bradspel',
+	'/lapp/a-grillkvall',
+	'/grupp/sondagspromenaderna',
+	'/grupp/nattbadarna',
+	'/grupper/ny',
+	'/forum/ny',
+	'/vanner'
 ];
 
 /** Går in i demon via startsidans knapp. */

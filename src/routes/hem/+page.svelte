@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { agoLabel, isDark, parts } from '#lib/time.ts';
+	import { isDark, minutesAgo, parts } from '#lib/time.ts';
 	import { weather } from '#lib/weather.svelte.ts';
 	import { ME_ID, SITE_NAME } from '#lib/config.ts';
 	import { diary, friendRequest, myFriends, userById } from '#lib/mock.ts';
@@ -12,30 +12,21 @@
 	import Pager from '#lib/components/Pager.svelte';
 	import Photo from '#lib/components/Photo.svelte';
 	import UserLink from '#lib/components/UserLink.svelte';
-	import Scene from '#lib/components/Scene.svelte';
+	import DiaryComposer from '#lib/components/DiaryComposer.svelte';
+	import DiaryPostView from '#lib/components/DiaryPostView.svelte';
 	import { nudge } from '#lib/nudge.ts';
-	import { SCENE_TITLES, sceneNames } from '#lib/illustrations.ts';
 
 	const PER_PAGE = 4;
 	let pageNo = $state(1);
-	const allPosts = $derived([...demo.d.myPosts, ...diary]);
-	const pages = $derived(Math.ceil(allPosts.length / PER_PAGE));
+	// Vännernas dagböcker: dina inlägg (inte de privata) och dina vänners.
+	const allPosts = $derived(
+		[...demo.d.myPosts.filter((p) => p.visibility !== 'privat'), ...diary.filter((p) => p.by === ME_ID || demo.isFriend(p.by))].sort(
+			(a, b) => minutesAgo(a, demo.now) - minutesAgo(b, demo.now)
+		)
+	);
+	const pages = $derived(Math.max(1, Math.ceil(allPosts.length / PER_PAGE)));
 	const posts = $derived(allPosts.slice((pageNo - 1) * PER_PAGE, pageNo * PER_PAGE));
 
-	let postText = $state('');
-	let postScene = $state('');
-	let pickOpen = $state(false);
-
-	function writePost(e: SubmitEvent) {
-		e.preventDefault();
-		const text = postText.trim();
-		if (!text) return;
-		demo.addPost(text, postScene || undefined, postScene ? SCENE_TITLES[postScene] : undefined);
-		postText = '';
-		postScene = '';
-		pickOpen = false;
-		pageNo = 1;
-	}
 
 	const spontaneous = $derived(
 		demo.allActivities
@@ -111,62 +102,11 @@
 			{/if}
 		</Box>
 
-		<Box title="Dagboken" icon="book" id="dagboken">
-			{#snippet extra()}bara vänner{/snippet}
-			<form class="composer" onsubmit={writePost}>
-				<label for="post-text" class="label">Skriv i dagboken</label>
-				<textarea id="post-text" maxlength="500" bind:value={postText} placeholder="Vad har du hittat på i dag?"></textarea>
-				{#if pickOpen}
-					<fieldset class="pick">
-						<legend>Välj en bild</legend>
-						<label class="pick-opt none"><input type="radio" name="post-scene" value="" bind:group={postScene} /><span>Ingen bild</span></label>
-						{#each sceneNames as sc (sc)}
-							<label class="pick-opt">
-								<input type="radio" name="post-scene" value={sc} bind:group={postScene} />
-								<span class="pick-img"><Scene scene={sc} alt={null} /></span>
-								<span class="sr-only">{SCENE_TITLES[sc]}</span>
-							</label>
-						{/each}
-					</fieldset>
-				{/if}
-				<div class="spread">
-					<button type="button" class="linkbtn small" aria-expanded={pickOpen} onclick={() => (pickOpen = !pickOpen)}>
-						<Icon name="camera" size={12} />
-						{postScene ? `Bild: ${SCENE_TITLES[postScene]}` : 'Lägg till bild'}
-					</button>
-					<button type="submit" class="btn btn-small btn-primary">Publicera</button>
-				</div>
-				<p class="xs muted">Syns bara för dina vänner. Bara du ser hur många som tycker att det är schysst.</p>
-			</form>
+		<Box title="Vännernas dagböcker" icon="book" id="dagboken">
+			{#snippet extra()}<a href={`/profil/${ME_ID}#dagbok`}>Min dagbok</a>{/snippet}
+			<DiaryComposer onposted={() => (pageNo = 1)} />
 			<ul class="plain item-list diary">
-				{#each posts as post (post.id)}
-					{@const mine = post.by === ME_ID}
-					{@const liked = !!demo.d.schysst[post.id]}
-					<li class="post">
-						<Avatar id={post.by} size={44} />
-						<div class="post-body">
-							<p class="post-head small"><UserLink id={post.by} /> <span class="muted">· {agoLabel(post.ago, demo.now)}</span></p>
-							<p class="post-text">{post.text}</p>
-							{#if post.photo}
-								<div class="post-photo"><Photo caption={post.photo.caption} scene={post.photo.scene} /></div>
-							{/if}
-							<div class="row">
-								<button
-									type="button"
-									class="btn btn-small"
-									class:btn-done={liked}
-									aria-pressed={liked}
-									onclick={() => toggleSchysst(post.id)}
-								>
-									<Icon name="heart" size={12} /> {liked ? 'Schysst ✓' : 'Schysst'}
-								</button>
-								{#if mine}
-									<span class="small"><strong class="num">{post.schysst + (liked ? 1 : 0)}</strong> tycker det är schysst <span class="muted">(syns bara för dig)</span></span>
-								{/if}
-							</div>
-						</div>
-					</li>
-				{/each}
+				{#each posts as post (post.id)}<DiaryPostView {post} />{/each}
 			</ul>
 			{#if pageNo === pages}
 				<p class="notice ok caught-up" role="status">
@@ -214,7 +154,7 @@
 		</Box>
 
 		<Box title="Inloggade vänner" icon="group">
-			{#snippet extra()}<span class="num">{onlineFriends.length}</span>{/snippet}
+			{#snippet extra()}<span class="num">{onlineFriends.length}</span> · <a href="/vanner">Hitta vänner</a>{/snippet}
 			<ul class="plain friends">
 				{#each onlineFriends as u (u.id)}
 					<li id={`van-${u.id}`}>
@@ -245,92 +185,24 @@
 </div>
 
 <style>
-	.composer {
-		display: grid;
-		gap: 6px;
-		margin-bottom: var(--space-4);
-		padding-bottom: var(--space-3);
-		border-bottom: 1px solid var(--border);
-	}
 
-	.composer textarea {
-		min-height: 72px;
-	}
 
-	.composer p {
-		margin: 0;
-	}
 
-	.pick {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-		gap: 6px;
-		margin: 0;
-	}
 
-	.pick-opt {
-		position: relative;
-		display: grid;
-		place-items: center;
-		min-height: 64px;
-		padding: 3px;
-		background: var(--photo-frame);
-		border: 2px solid var(--border);
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-	}
 
-	.pick-opt input {
-		position: absolute;
-		opacity: 0;
-		width: 1px;
-		height: 1px;
-	}
 
-	.pick-img {
-		display: block;
-		width: 100%;
-	}
 
-	.pick-opt.none span {
-		font-size: var(--text-xs);
-		color: #333;
-		text-align: center;
-	}
 
-	.pick-opt:has(input:checked) {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 2px var(--accent);
-	}
 
-	.pick-opt:has(input:focus-visible) {
-		outline: 3px solid var(--focus);
-		outline-offset: 2px;
-	}
 
 	.spont {
 		display: grid;
 		gap: var(--space-2);
 	}
 
-	.post {
-		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
-		gap: var(--space-3);
-	}
 
-	.post-head {
-		margin: 0 0 4px;
-	}
 
-	.post-text {
-		margin: 0 0 var(--space-2);
-	}
 
-	.post-photo {
-		max-width: 220px;
-		margin-bottom: var(--space-2);
-	}
 
 	.caught-up {
 		margin: var(--space-3) 0;

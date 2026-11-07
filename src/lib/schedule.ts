@@ -4,7 +4,7 @@
 // alltid finns något att hänga på inom en timme – även klockan två på natten.
 
 import { activitySpecs, type Activity, type WhenSpec } from './mock.ts';
-import { nextTime, nextWeekday, parts, seasonOf } from './time.ts';
+import { nextTime, nextWeekday, onDay, parts, seasonOf } from './time.ts';
 
 type Variant = Partial<Activity> & { when?: WhenSpec; sommar?: Partial<Activity> };
 type Band = 'natt' | 'morgon' | 'dag' | 'kvall' | 'sent';
@@ -129,7 +129,7 @@ export function buildActivities(now: number, anchor = now): Activity[] {
 	const season = seasonOf(anchor);
 	const band = bandOf(parts(anchor).h);
 
-	cache = activitySpecs.map((spec) => {
+	cache = activitySpecs.filter((spec) => !('daysAgo' in spec.when)).map((spec) => {
 		const { when: specWhen, seasonal, ...base } = spec;
 		let a: Variant = { ...base, ...(seasonal?.[season] ?? {}) };
 		let when: WhenSpec = specWhen;
@@ -145,7 +145,9 @@ export function buildActivities(now: number, anchor = now): Activity[] {
 			}
 		}
 		const start =
-			'soon' in when
+			'daysAgo' in when
+				? onDay(anchor, -when.daysAgo, when.at)
+				: 'soon' in when
 				? anchor + when.soon * 60000
 				: 'weekday' in when
 					? nextWeekday(anchor, when.weekday, when.at)
@@ -154,4 +156,15 @@ export function buildActivities(now: number, anchor = now): Activity[] {
 	});
 	cacheKey = key;
 	return cache;
+}
+
+/** Aktiviteter som redan har varit (för "Gästboken efteråt"). */
+export function buildPast(now: number): Activity[] {
+	return activitySpecs
+		.filter((spec) => 'daysAgo' in spec.when)
+		.map((spec) => {
+			const { when, seasonal: _s, ...base } = spec;
+			const w = when as { daysAgo: number; at: string };
+			return { ...(base as Activity), startIn: Math.round((onDay(now, -w.daysAgo, w.at) - now) / 60000) };
+		});
 }
