@@ -12,17 +12,22 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import UserLink from '#lib/components/UserLink.svelte';
 
+	type Pin = { kind: 'akt'; item: Activity } | { kind: 'plats'; item: Place };
 	type Sel =
-		| { kind: 'akt'; item: Activity }
+		| Pin
 		| { kind: 'door'; item: OpenDoor }
-		| { kind: 'plats'; item: Place }
+		| { kind: 'many'; items: Pin[] }
 		| null;
+
+	/** Nålar närmare än så här (i skärmpixlar) slås ihop till ett kluster. */
+	const CLUSTER_PX = 48;
 
 	let mapEl: HTMLDivElement;
 	let panelEl: HTMLElement | undefined = $state();
 	let map: Leaflet.Map | undefined;
 	let L: typeof Leaflet | undefined;
-	let layers: Record<'akt' | 'door' | 'plats', Leaflet.LayerGroup> | undefined;
+	let pinLayer: Leaflet.LayerGroup | undefined;
+	let doorLayer: Leaflet.LayerGroup | undefined;
 	let show = $state({ akt: true, door: true, plats: true });
 	let sel = $state<Sel>(null);
 	let asked = $state<Record<string, boolean>>({});
@@ -34,21 +39,92 @@
 		return `<svg viewBox="0 0 12 12" width="18" height="18" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="${ICONS[name]}"/></svg>`;
 	}
 
-	function pinIcon(kind: 'akt' | 'plats', icon: string) {
-		return L!.divIcon({
-			className: `pin pin-${kind}`,
-			html: `<span class="pin-box">${svg(icon)}</span>`,
-			iconSize: [34, 40],
-			iconAnchor: [17, 38]
-		});
+	const pinLabel = (p: Pin) => (p.kind === 'akt' ? `Aktivitet: ${p.item.title}` : `Plats: ${p.item.name}`);
+
+	function visiblePins(): Pin[] {
+		const out: Pin[] = [];
+		if (show.akt) for (const a of acts) out.push({ kind: 'akt', item: a });
+		if (show.plats) for (const p of places) out.push({ kind: 'plats', item: p });
+		return out;
 	}
+
+	/** Enkel girig klustring i skärmkoordinater för aktuell zoomnivå. */
+	function clusterPins(list: Pin[]) {
+		const groups: { pins: Pin[]; x: number; y: number }[] = [];
+		for (const p of list) {
+			const pt = map!.latLngToLayerPoint([p.item.lat, p.item.lng]);
+			const g = groups.find((c) => Math.hypot(c.x - pt.x, c.y - pt.y) < CLUSTER_PX);
+			if (g) {
+				g.pins.push(p);
+				g.x = (g.x * (g.pins.length - 1) + pt.x) / g.pins.length;
+				g.y = (g.y * (g.pins.length - 1) + pt.y) / g.pins.length;
+			} else groups.push({ pins: [p], x: pt.x, y: pt.y });
+		}
+		return groups;
+	}
+
+	function renderPins() {
+		if (!L || !map || !pinLayer) return;
+		mapEl.dataset.zoom = String(map.getZoom());
+		pinLayer.clearLayers();
+		for (const g of clusterPins(visiblePins())) {
+			const ll = map.layerPointToLatLng([g.x, g.y]);
+			let m: Leaflet.Marker;
+			if (g.pins.length === 1) {
+				const p = g.pins[0];
+				m = L.marker([p.item.lat, p.item.lng], {
+					icon: L.divIcon({
+						className: `pin pin-${p.kind}`,
+						html: `<span class="pin-box">${svg(p.kind === 'akt' ? 'star' : 'tree')}</span>`,
+						iconSize: [44, 44],
+						iconAnchor: [22, 42]
+					}),
+					title: pinLabel(p),
+					keyboard: true,
+					riseOnHover: true
+				}).on('click', () => selectAndFocus(p));
+			} else {
+				const n = g.pins.length;
+				m = L.marker(ll, {
+					icon: L.divIcon({
+						className: 'pin pin-cluster',
+						html: `<span class="cluster-box"><span>${n}</span></span>`,
+						iconSize: [44, 44],
+						iconAnchor: [22, 22]
+					}),
+					title: `${n} saker här – zooma in`,
+					keyboard: true,
+					riseOnHover: true
+				}).on('click', () => openCluster(g.pins));
+			}
+			m.addTo(pinLayer);
+			const el = m.getElement();
+			el?.setAttribute('role', 'button');
+			el?.setAttribute('data-count', String(g.pins.length));
+		}
+	}
+
+	function openCluster(pins: Pin[]) {
+		if (!map || !L) return;
+		const bounds = L.latLngBounds(pins.map((p) => [p.item.lat, p.item.lng] as [number, number]));
+		const target = map.getBoundsZoom(bounds.pad(0.5));
+		if (map.getZoom() < map.getMaxZoom() && target > map.getZoom()) {
+			map.flyToBounds(bounds.pad(0.5), { maxZoom: map.getMaxZoom(), duration: reduce() ? 0 : 0.6 });
+		} else {
+			// Redan inzoomat så långt det går – visa allt som en lista i panelen.
+			sel = { kind: 'many', items: pins };
+			tick().then(() => panelEl?.focus());
+		}
+	}
+
+	const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 	function select(s: Sel, fly = true) {
 		sel = s;
-		if (!s || !map) return;
+		if (!s || !map || s.kind === 'many') return;
 		if (fly) {
 			const ll: [number, number] = [s.item.lat, s.item.lng];
-			map.flyTo(ll, Math.max(map.getZoom(), s.kind === 'door' ? 13 : 14), { duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 0.6 });
+			map.flyTo(ll, Math.max(map.getZoom(), s.kind === 'door' ? 13 : 15), { duration: reduce() ? 0 : 0.6 });
 		}
 	}
 
@@ -60,19 +136,8 @@
 
 	function build() {
 		if (!L || !map) return;
-		Object.values(layers ?? {}).forEach((g) => g.remove());
-		const akt = L.layerGroup();
-		for (const a of acts) {
-			const m = L.marker([a.lat, a.lng], {
-				icon: pinIcon('akt', 'star'),
-				title: `Aktivitet: ${a.title}`,
-				alt: a.title,
-				keyboard: true,
-				riseOnHover: true
-			}).on('click', () => selectAndFocus({ kind: 'akt', item: a }));
-			m.addTo(akt);
-		}
-		const door = L.layerGroup();
+		doorLayer?.remove();
+		doorLayer = L.layerGroup();
 		for (const d of openDoors) {
 			L.circle([d.lat, d.lng], {
 				radius: d.radius,
@@ -84,30 +149,17 @@
 			})
 				.bindTooltip(`Öppen dörr i ${d.area}`, { sticky: true })
 				.on('click', () => selectAndFocus({ kind: 'door', item: d }))
-				.addTo(door);
+				.addTo(doorLayer);
 		}
-		const plats = L.layerGroup();
-		for (const p of places) {
-			L.marker([p.lat, p.lng], {
-				icon: pinIcon('plats', 'tree'),
-				title: `Plats: ${p.name}`,
-				alt: p.name,
-				keyboard: true
-			})
-				.on('click', () => selectAndFocus({ kind: 'plats', item: p }))
-				.addTo(plats);
-		}
-		layers = { akt, door, plats };
+		pinLayer ??= L.layerGroup().addTo(map);
 		applyLayers();
 	}
 
 	function applyLayers() {
-		if (!map || !layers) return;
-		for (const k of ['door', 'plats', 'akt'] as const) {
-			if (show[k]) layers[k].addTo(map);
-			else layers[k].remove();
-		}
-		map.getContainer().querySelectorAll('.leaflet-marker-icon').forEach((el) => el.setAttribute('role', 'button'));
+		if (!map || !doorLayer) return;
+		if (show.door) doorLayer.addTo(map);
+		else doorLayer.remove();
+		renderPins();
 	}
 
 	onMount(() => {
@@ -133,6 +185,7 @@
 			map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
 			L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
 			build();
+			map.on('zoomend', renderPins);
 			const id = new URLSearchParams(window.location.search).get('nal');
 			const hit = id ? acts.find((a) => a.id === id) : undefined;
 			if (hit) select({ kind: 'akt', item: hit });
@@ -146,7 +199,7 @@
 	function toggle(k: 'akt' | 'door' | 'plats') {
 		show[k] = !show[k];
 		applyLayers();
-		if (sel?.kind === k && !show[k]) sel = null;
+		if (sel && sel.kind === k && !show[k]) sel = null;
 	}
 
 	function noteHere(p: Place) {
@@ -155,6 +208,11 @@
 	}
 
 	const actsAt = (p: Place) => acts.filter((a) => a.placeId === p.id);
+
+	$effect(() => {
+		void acts.length;
+		renderPins();
+	});
 </script>
 
 <svelte:head><title>Kartan – {SITE_NAME}</title></svelte:head>
@@ -189,10 +247,17 @@
 
 	<aside class="panel-col" aria-label="Detaljer">
 		<div class="panel" bind:this={panelEl} tabindex="-1" data-testid="panel">
-			<Box title={sel ? (sel.kind === 'akt' ? 'Aktivitet' : sel.kind === 'door' ? 'Öppen dörr' : 'Plats') : 'Detaljer'} icon={sel?.kind === 'door' ? 'door' : sel?.kind === 'plats' ? 'tree' : 'pin'}>
+			<Box title={sel ? (sel.kind === 'akt' ? 'Aktivitet' : sel.kind === 'door' ? 'Öppen dörr' : sel.kind === 'many' ? 'Flera saker här' : 'Plats') : 'Detaljer'} icon={sel?.kind === 'door' ? 'door' : sel?.kind === 'plats' ? 'tree' : 'pin'}>
 				{#if !sel}
 					<p>Klicka på en nål eller en ring på kartan, eller välj i listan nedanför.</p>
 					<p class="small muted">Stjärna = aktivitet · Gran = plats · Streckad ring = öppen dörr</p>
+				{:else if sel.kind === 'many'}
+					<p class="small">Här ligger flera saker tätt ihop:</p>
+					<ul class="plain list">
+						{#each sel.items as p (p.item.id)}
+							<li><button type="button" class="linkbtn" onclick={() => selectAndFocus(p)}>{pinLabel(p)}</button></li>
+						{/each}
+					</ul>
 				{:else if sel.kind === 'akt'}
 					<ActivityCard a={sel.item} headingLevel={3} />
 				{:else if sel.kind === 'plats'}
@@ -363,9 +428,14 @@
 		color: #0a4cad;
 	}
 
+	/* Varje nål är en 44×44 px träffyta; själva nålen ritas överst i den. */
 	.map :global(.pin) {
+		display: grid;
+		justify-items: center;
+		align-content: start;
 		background: none;
 		border: 0;
+		border-radius: 8px;
 	}
 
 	.map :global(.pin-box) {
@@ -401,9 +471,32 @@
 		background: #1d7a3a;
 	}
 
+	.map :global(.pin-cluster) {
+		align-content: center;
+	}
+
+	.map :global(.cluster-box) {
+		display: grid;
+		place-items: center;
+		width: 40px;
+		height: 40px;
+		font-family: var(--font-pixel);
+		font-size: 15px;
+		color: #fff;
+		background: #10305f;
+		border: 3px solid #fff;
+		border-radius: 50%;
+		box-shadow:
+			0 0 0 3px rgb(27 86 196 / 0.45),
+			0 2px 6px rgb(0 0 0 / 0.4);
+		transition: transform var(--speed-fast) var(--ease);
+	}
+
 	.map :global(.pin:hover .pin-box),
-	.map :global(.pin:focus-visible .pin-box) {
-		transform: translateY(-3px) scale(1.06);
+	.map :global(.pin:focus-visible .pin-box),
+	.map :global(.pin:hover .cluster-box),
+	.map :global(.pin:focus-visible .cluster-box) {
+		transform: translateY(-2px) scale(1.06);
 	}
 
 	.map :global(.leaflet-marker-icon:focus-visible) {

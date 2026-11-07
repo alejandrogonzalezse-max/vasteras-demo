@@ -32,10 +32,13 @@ h4 {
 }
 
 h1 {
-	font-family: var(--font-pixel);
+	font-family: var(--font-display);
 	font-weight: 400;
-	font-size: var(--text-2xl);
+	font-size: 2.5rem;
+	line-height: 1.05;
 	letter-spacing: 0.01em;
+	text-transform: none;
+	text-wrap: balance;
 }
 
 h2 {
@@ -120,10 +123,14 @@ ol.plain {
 	font-size: var(--text-xs);
 }
 
-.pixel {
-	font-family: var(--font-pixel);
+/* Rubrikstil i VT323 för korta etiketter och sektionsrubriker. */
+.display {
+	font-family: var(--font-display);
 	font-weight: 400;
-	letter-spacing: 0.02em;
+	font-size: 1.25em;
+	line-height: 1.1;
+	letter-spacing: 0.01em;
+	text-transform: none;
 }
 
 .num {

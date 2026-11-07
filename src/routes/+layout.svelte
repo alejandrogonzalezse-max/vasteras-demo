@@ -3,11 +3,13 @@
 	import '@fontsource/atkinson-hyperlegible/latin-700.css';
 	import '@fontsource/atkinson-hyperlegible/latin-400-italic.css';
 	import '@fontsource/silkscreen/latin-400.css';
+	import '@fontsource/vt323/latin-400.css';
 	import '#lib/styles/tokens.css';
 	import '#lib/styles/base.css';
 	import fontBody from '@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-400-normal.woff2?url';
 	import fontBold from '@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-700-normal.woff2?url';
 	import fontPixel from '@fontsource/silkscreen/files/silkscreen-latin-400-normal.woff2?url';
+	import fontDisplay from '@fontsource/vt323/files/vt323-latin-400-normal.woff2?url';
 
 	import { onMount } from 'svelte';
 	import { goto, afterNavigate } from '$app/navigation';
@@ -66,7 +68,12 @@
 	});
 
 	afterNavigate(() => {
-		document.querySelector<HTMLElement>('.tabs a[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+		// Scrolla bara flikraden i sidled (mellanbredd), aldrig själva sidan.
+		const tabs = document.querySelector<HTMLElement>('.tabs');
+		const active = tabs?.querySelector<HTMLElement>('a[aria-current="page"]');
+		if (tabs && active && tabs.scrollWidth > tabs.clientWidth) {
+			tabs.scrollLeft = active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2;
+		}
 	});
 
 	async function logout() {
@@ -94,6 +101,7 @@
 	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontBody} />
 	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontBold} />
 	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontPixel} />
+	<link rel="preload" as="font" type="font/woff2" crossorigin="anonymous" href={fontDisplay} />
 </svelte:head>
 
 <a class="skip" href="#innehall">Hoppa till innehållet</a>
@@ -156,7 +164,7 @@
 <footer class="site-foot">
 	<div class="wrap foot-grid">
 		<div>
-			<p class="foot-name pixel">{SITE_NAME}</p>
+			<p class="foot-name">{SITE_NAME}</p>
 			<p class="small">{SLOGAN}<br /><strong>{TAGLINE}</strong></p>
 		</div>
 		<nav aria-label="Sidfot">
@@ -293,6 +301,7 @@
 	}
 
 	.tabs {
+		position: relative;
 		display: flex;
 		gap: 2px;
 		overflow-x: auto;
@@ -308,7 +317,7 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		min-height: 40px;
+		min-height: 44px;
 		padding: 6px 12px;
 		font-size: var(--text-sm);
 		font-weight: 700;
@@ -357,7 +366,34 @@
 		.short {
 			display: inline;
 		}
+	}
 
+	/* Smala skärmar: två rader med fyra flikar, ingen sidledsscroll. */
+	@media (max-width: 599px) {
+		.tabs {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			gap: 4px;
+			overflow: visible;
+			padding-block: 6px;
+		}
+
+		.tabs a {
+			justify-content: center;
+			min-height: 52px;
+			padding: 6px 2px;
+			border: 1px solid transparent;
+			border-radius: var(--radius);
+			text-align: center;
+		}
+
+		.tabs a[aria-current='page'] {
+			margin-bottom: 0;
+			border-color: var(--head-border);
+			box-shadow:
+				inset 0 3px 0 var(--accent),
+				var(--shadow-sm);
+		}
 	}
 
 	@media (max-width: 720px) {
@@ -403,6 +439,7 @@
 
 	.foot-name {
 		margin: 0 0 4px;
+		font-family: var(--font-pixel);
 	}
 
 	.foot-links {

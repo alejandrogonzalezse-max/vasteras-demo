@@ -62,7 +62,7 @@
 						</div>
 					{:else}
 						<div class="decision" role="status">
-							<p class="xs pixel dlabel">{d === 'approve' ? 'Beslut: ' + q.approve.label : 'Beslut: ' + q.remove.label} · meddelande skickat</p>
+							<p class="display dlabel">{d === 'approve' ? 'Beslut: ' + q.approve.label : 'Beslut: ' + q.remove.label} · meddelande skickat</p>
 							<blockquote class="small">{d === 'approve' ? q.approve.message : q.remove.message}</blockquote>
 							<button type="button" class="linkbtn xs" onclick={() => undo(q)}>Ångra (bara i demon)</button>
 						</div>

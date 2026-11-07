@@ -24,8 +24,8 @@
 	{#each data.threads as t (t.id)}
 		<div class="trow">
 			<span><a href={`/forum/trad/${t.id}`}><strong>{t.title}</strong></a><br /><span class="xs">av <UserLink id={t.by} /></span></span>
-			<span class="c num"><span class="lbl">Svar: </span>{t.posts.length - 1 + (demo.d.forumReplies[t.id]?.length ?? 0)}</span>
-			<span class="c num"><span class="lbl">Visningar: </span>{t.views}</span>
+			<span class="c num"><span class="lbl">Svar:&nbsp;</span>{t.posts.length - 1 + (demo.d.forumReplies[t.id]?.length ?? 0)}</span>
+			<span class="c num"><span class="lbl">Visningar:&nbsp;</span>{t.views}</span>
 			<span class="xs muted">{t.last}</span>
 		</div>
 	{/each}
@@ -54,8 +54,8 @@
 	}
 
 	.thead {
-		font-family: var(--font-pixel);
-		font-size: var(--text-xs);
+		font-family: var(--font-display);
+		font-size: var(--text-lg);
 		color: var(--head-text);
 		background: linear-gradient(to bottom, var(--head-from), var(--head-to));
 		border-bottom: 1px solid var(--head-border);

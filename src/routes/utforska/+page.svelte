@@ -107,7 +107,7 @@
 	<ul class="plain grid">
 		{#each openPhotos as ph (ph.id)}
 			<li>
-				<Photo caption={ph.caption} color={ph.color} icon={ph.icon} />
+				<Photo caption={ph.caption} scene={ph.scene} />
 				<div class="ph-foot xs">
 					<UserLink id={ph.by} />
 					<button type="button" class="btn btn-small" class:btn-done={liked[ph.id]} aria-pressed={!!liked[ph.id]} onclick={() => (liked[ph.id] = !liked[ph.id])}>

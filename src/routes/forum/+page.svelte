@@ -32,8 +32,8 @@
 					<span class="xs muted desc">{r.c.text}</span>
 				</span>
 			</span>
-			<span role="cell" class="c num"><span class="lbl">Trådar: </span>{r.threads}</span>
-			<span role="cell" class="c num"><span class="lbl">Inlägg: </span>{r.posts}</span>
+			<span role="cell" class="c num"><span class="lbl">Trådar:&nbsp;</span>{r.threads}</span>
+			<span role="cell" class="c num"><span class="lbl">Inlägg:&nbsp;</span>{r.posts}</span>
 			<span role="cell" class="small last">
 				{#if r.latest}<a href={`/forum/trad/${r.latest.id}`}>{r.latest.title}</a><br /><span class="xs muted">{r.latest.last}</span>{/if}
 			</span>
@@ -59,8 +59,8 @@
 	}
 
 	.fhead {
-		font-family: var(--font-pixel);
-		font-size: var(--text-xs);
+		font-family: var(--font-display);
+		font-size: var(--text-lg);
 		color: var(--head-text);
 		background: linear-gradient(to bottom, var(--head-from), var(--head-to));
 		border-bottom: 1px solid var(--head-border);

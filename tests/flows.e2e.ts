@@ -101,28 +101,58 @@ test('demo-säsong ändrar tärningens viktning', async ({ page }) => {
 test('kartlager går att slå av och på, och öppen dörr är bara en ring', async ({ page }) => {
 	await enter(page);
 	await page.goto('/kartan');
-	const markers = page.locator('.leaflet-marker-icon');
 	const rings = page.locator('path.leaflet-interactive');
-	await expect(markers).toHaveCount(16);
+	// Summan av alla nålar och kluster (data-count) = antal saker på kartan.
+	const total = () =>
+		page.locator('.leaflet-marker-icon').evaluateAll((els) => els.reduce((s, e) => s + Number(e.getAttribute('data-count') ?? 0), 0));
+	await expect.poll(total).toBe(16);
 	await expect(rings).toHaveCount(4);
 
 	await page.getByTestId('layer-akt').uncheck();
-	await expect(markers).toHaveCount(8);
+	await expect.poll(total).toBe(8);
 	await page.getByTestId('layer-plats').uncheck();
-	await expect(markers).toHaveCount(0);
+	await expect.poll(total).toBe(0);
 	await page.getByTestId('layer-door').uncheck();
 	await expect(rings).toHaveCount(0);
 	await page.getByTestId('layer-door').check();
 	await expect(rings).toHaveCount(4);
 	await page.getByTestId('layer-plats').check();
-	await expect(markers).toHaveCount(8);
+	await page.getByTestId('layer-akt').check();
+	await expect.poll(total).toBe(16);
 
-	await page.getByRole('button', { name: 'Plats: Björnö' }).click();
+	await page.locator('#lista').getByRole('button', { name: 'Björnö' }).click();
 	await expect(page.getByTestId('panel').getByRole('heading', { name: 'Björnö' })).toBeVisible();
 
-	await page.getByRole('button', { name: 'Vinylkväll i vardagsrummet' }).click();
+	await page.locator('#lista').getByRole('button', { name: 'Vinylkväll i vardagsrummet' }).click();
 	await expect(page.getByTestId('panel')).toContainText('Varför bara en ring?');
 	await expect(page.locator('.leaflet-control-attribution')).toContainText('OpenStreetMap-bidragsgivare');
+});
+
+test('kartan: täta nålar blir kluster och varje nål har 44 px träffyta', async ({ page }) => {
+	await enter(page);
+	await page.goto('/kartan');
+	const markers = page.locator('.leaflet-marker-icon');
+	await expect(markers.first()).toBeVisible();
+	for (const box of await markers.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()))) {
+		expect(box.width).toBeGreaterThanOrEqual(44);
+		expect(box.height).toBeGreaterThanOrEqual(44);
+	}
+	// Inga två träffytor överlappar.
+	const rects = await markers.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
+	for (let i = 0; i < rects.length; i++)
+		for (let j = i + 1; j < rects.length; j++) {
+			const a = rects[i], b = rects[j];
+			const overlap = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+			expect(overlap, `nål ${i} och ${j} överlappar`).toBe(false);
+		}
+	const cluster = page.locator('.pin-cluster').first();
+	await expect(cluster).toHaveAttribute('title', /saker här/);
+	const map = page.getByTestId('map');
+	const zoomBefore = Number(await map.getAttribute('data-zoom'));
+	await cluster.click();
+	await expect
+		.poll(async () => Number(await map.getAttribute('data-zoom')) > zoomBefore || (await page.getByTestId('panel').getByText('Flera saker här').count()) > 0)
+		.toBe(true);
 });
 
 test('byt tema och temat sparas', async ({ page }) => {

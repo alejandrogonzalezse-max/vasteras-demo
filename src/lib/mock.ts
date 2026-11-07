@@ -614,19 +614,19 @@ export interface DiaryPost {
 	by: string;
 	ago: string;
 	text: string;
-	photo?: { caption: string; color: string; icon?: string };
+	photo?: { caption: string; scene: string };
 	schysst: number;
 }
 
 export const diary: DiaryPost[] = [
-	{ id: 'd1', by: 'sannas', ago: '23 min sedan', text: 'Fyra grader i vattnet vid Framnäs i morse. Jag skrek lite. Sedan bastu. Livet är bra.', photo: { caption: 'Bryggan vid Framnäs, 07:10', color: '#5d7fa3', icon: 'water' }, schysst: 14 },
-	{ id: 'd2', by: 'gubben940', ago: '1 tim sedan', text: 'Tack alla som kom på grillningen i lördags! Sju nya ansikten. Pelle hade med sig senap från 1987 (skämt, tror jag).', photo: { caption: 'Grillplatsen på Djäkneberget', color: '#a3745d', icon: 'sausage' }, schysst: 21 },
+	{ id: 'd1', by: 'sannas', ago: '23 min sedan', text: 'Fyra grader i vattnet vid Framnäs i morse. Jag skrek lite. Sedan bastu. Livet är bra.', photo: { caption: 'Bryggan vid Framnäs i går kväll', scene: 'brygga' }, schysst: 14 },
+	{ id: 'd2', by: 'gubben940', ago: '1 tim sedan', text: 'Tack alla som kom på grillningen i lördags! Sju nya ansikten. Pelle hade med sig senap från 1987 (skämt, tror jag).', photo: { caption: 'Elden när de sista gått hem', scene: 'bal' }, schysst: 21 },
 	{ id: 'd3', by: 'linnea-l', ago: '2 tim sedan', text: 'Hittade ett vykort från 1962 på loppis med Stadshuset på. Någon skrev "Vädret är fint, maten är god, Sven är sur". Tidlöst.', schysst: 9 },
-	{ id: 'd4', by: 'mopedmia', ago: '3 tim sedan', text: 'Puchen startade på första kicken efter tre veckors mek. Erik, du är en legend som hade rätt packning.', photo: { caption: 'En gammal moped i garaget', color: '#8a5d5d', icon: 'star' }, schysst: 17 },
+	{ id: 'd4', by: 'mopedmia', ago: '3 tim sedan', text: 'Puchen startade på första kicken efter tre veckors mek. Erik, du är en legend som hade rätt packning.', photo: { caption: 'Puchen, redo för grusvägen', scene: 'moped' }, schysst: 17 },
 	{ id: 'd5', by: 'johanna-v', ago: 'i går', text: 'Elva personer på brädspelskvällen! Vi behöver fler bord. Och fler som kan reglerna till det långa spelet med fåren.', schysst: 12 },
-	{ id: 'd6', by: 'fotofredrik', ago: 'i går', text: 'Dimman över Mälaren från Lövudden. Ingen filter, bara november.', photo: { caption: 'Dimma över vattnet', color: '#7d8a99', icon: 'cloud' }, schysst: 25 },
+	{ id: 'd6', by: 'fotofredrik', ago: 'i går', text: 'Solnedgången från Lövudden i går. Inget filter, bara november som visar sig från sin bästa sida.', photo: { caption: 'Solnedgången från Lövudden', scene: 'solnedgang' }, schysst: 25 },
 	{ id: 'd7', by: 'backby-pelle', ago: '2 dagar sedan', text: 'Lånade ut fiskespöt till en kille från Tillberga som just flyttat hit. Han fick en abborre direkt. Nybörjartur heter det.', schysst: 8 },
-	{ id: 'd8', by: 'erik-pa-raby', ago: '3 dagar sedan', text: 'Sorterade förrådet. Har tre cykelpumpar för mycket. Kom och ta en, jag bjuder på kaffe.', photo: { caption: 'Förrådet, äntligen sorterat', color: '#5d8a6e', icon: 'house' }, schysst: 6 }
+	{ id: 'd8', by: 'erik-pa-raby', ago: '3 dagar sedan', text: 'Sorterade garaget. Har tre cykelpumpar för mycket. Kom och ta en, jag bjuder på kaffe.', photo: { caption: 'Garaget, äntligen sorterat', scene: 'garage' }, schysst: 6 }
 ];
 
 // ---------------------------------------------------------------- Gästboken efteråt (nattbadet)
@@ -635,10 +635,10 @@ export const afterNattbad = {
 	title: 'Nattbad vid Framnäs – i augusti',
 	text: 'Arton personer, en fullmåne och ett vatten på 19 grader. Här är bilder och hälsningar från kvällen.',
 	photos: [
-		{ caption: 'Månen över bryggan', color: '#2f4b73', icon: 'moon' },
-		{ caption: 'Handdukar på räcket', color: '#73582f', icon: 'water' },
-		{ caption: 'Någon tog med marschaller', color: '#8a4b2f', icon: 'fire' },
-		{ caption: 'Gänget efter doppet (bakifrån!)', color: '#2f735a', icon: 'group' }
+		{ caption: 'Månen över bryggan', scene: 'brygga' },
+		{ caption: 'Filtar och termos efter doppet', scene: 'termos' },
+		{ caption: 'Någon tände en eld på stranden', scene: 'bal' },
+		{ caption: 'Solen gick ner kvart i nio', scene: 'solnedgang' }
 	],
 	comments: [
 		{ by: 'sannas', ago: 'aug', text: 'Bästa kvällen i somras. Tack till alla som höll koll på varandra i vattnet!' },
@@ -751,15 +751,18 @@ export const eldsjal = {
 };
 
 export const openPhotos = [
-	{ id: 'f1', caption: 'Dimma över Mälaren', by: 'fotofredrik', color: '#7d8a99', icon: 'cloud', schysst: 25 },
-	{ id: 'f2', caption: 'Grillplatsen på Djäkneberget', by: 'gubben940', color: '#a3745d', icon: 'sausage', schysst: 21 },
-	{ id: 'f3', caption: 'Bryggan vid Framnäs', by: 'sannas', color: '#5d7fa3', icon: 'water', schysst: 14 },
-	{ id: 'f4', caption: 'Spelbordet efter elva', by: 'johanna-v', color: '#6e5da3', icon: 'dice', schysst: 12 },
-	{ id: 'f5', caption: 'Löv i Vasaparken', by: 'elinb', color: '#a38a5d', icon: 'tree', schysst: 11 },
-	{ id: 'f6', caption: 'Skeppssättningen i frost', by: 'rut-rocklunda', color: '#5d8a8a', icon: 'star', schysst: 19 },
-	{ id: 'f7', caption: 'Garaget på Pettersberg', by: 'mopedmia', color: '#8a5d5d', icon: 'house', schysst: 9 },
-	{ id: 'f8', caption: 'Kvällsljus vid Svartån', by: 'linnea-l', color: '#3f5d8a', icon: 'moon', schysst: 16 },
-	{ id: 'f9', caption: 'Abborre nummer ett', by: 'tobbe-tillberga', color: '#5d8a6e', icon: 'water', schysst: 13 }
+	{ id: 'f1', caption: 'Solnedgång över Mälaren', by: 'fotofredrik', scene: 'solnedgang', schysst: 25 },
+	{ id: 'f2', caption: 'Elden efter grillningen', by: 'gubben940', scene: 'bal', schysst: 21 },
+	{ id: 'f3', caption: 'Bryggan i månsken', by: 'sannas', scene: 'brygga', schysst: 14 },
+	{ id: 'f4', caption: 'Spelbordet efter elva', by: 'johanna-v', scene: 'bradspel', schysst: 12 },
+	{ id: 'f5', caption: 'Kantareller på Björnö', by: 'linnea-l', scene: 'svamp', schysst: 11 },
+	{ id: 'f6', caption: 'Kubbfinal i somras', by: 'matteok', scene: 'kubb', schysst: 19 },
+	{ id: 'f7', caption: 'Öppet garage på Pettersberg', by: 'mopedmia', scene: 'garage', schysst: 9 },
+	{ id: 'f8', caption: 'Söndagsfika hos Rut', by: 'rut-rocklunda', scene: 'fika', schysst: 16 },
+	{ id: 'f9', caption: 'Första isen i fjol', by: 'elinb', scene: 'skridskor', schysst: 13 },
+	{ id: 'f10', caption: 'Pulkabacken väntar på snö', by: 'erik-pa-raby', scene: 'pulka', schysst: 8 },
+	{ id: 'f11', caption: 'Mopeden vid grusvägen', by: 'tobbe-tillberga', scene: 'moped', schysst: 10 },
+	{ id: 'f12', caption: 'Termos och filtar på Lövudden', by: 'kicki61', scene: 'termos', schysst: 7 }
 ];
 
 // ---------------------------------------------------------------- Gästböcker på profiler

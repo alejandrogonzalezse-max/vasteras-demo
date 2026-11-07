@@ -8,7 +8,7 @@
 <svelte:head><title>{title} – {SITE_NAME}</title></svelte:head>
 
 <article class="draft">
-	<p class="stamp pixel">UTKAST</p>
+	<p class="stamp display">UTKAST</p>
 	<h1>{title}</h1>
 	<p class="notice draft small">Det här är ett utkast till texten för den riktiga sajten. Den är inte juridiskt granskad.</p>
 	{@render children()}

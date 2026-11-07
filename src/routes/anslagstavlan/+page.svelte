@@ -132,7 +132,7 @@
 			<p>{afterNattbad.text}</p>
 			<ul class="plain photos">
 				{#each afterNattbad.photos as ph (ph.caption)}
-					<li><Photo caption={ph.caption} color={ph.color} icon={ph.icon} /></li>
+					<li><Photo caption={ph.caption} scene={ph.scene} /></li>
 				{/each}
 			</ul>
 			<h3 class="gb-title">Hälsningar</h3>

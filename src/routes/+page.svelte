@@ -5,6 +5,7 @@
 	import { demo } from '#lib/state.svelte.ts';
 	import Box from '#lib/components/Box.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import Scene from '#lib/components/Scene.svelte';
 
 	let code = $state('');
 	let email = $state('');
@@ -36,22 +37,22 @@
 
 <section class="hero">
 	<div class="hero-text">
-		<p class="kicker pixel">Västerås · ideellt · 18+</p>
+		<p class="kicker display">Västerås · ideellt · 18+</p>
 		<h1>{SLOGAN}</h1>
 		<p class="lead">
 			{SITE_NAME} är en mötesplats där västeråsare lägger ut saker att göra tillsammans – nattbad, korvgrillning, öppet garage, brännboll.
 			Målet är att vi ska träffas på riktigt i stället för att scrolla.
 		</p>
-		<p class="pledge pixel">{TAGLINE}</p>
+		<p class="pledge display">{TAGLINE}</p>
 		<div class="row">
 			<a class="btn btn-primary btn-big" href="#inbjudan">Jag har en inbjudan</a>
 			<button type="button" class="btn btn-big" onclick={() => { demo.d.loggedIn = true; goto('/hem'); }}>Titta runt i demon</button>
 		</div>
 	</div>
 	<div class="hero-art" aria-hidden="true">
-		<div class="polaroid p1"><span style:--c="#2f4b73"><Icon name="moon" size={44} /></span><em>nattbad</em></div>
-		<div class="polaroid p2"><span style:--c="#a3745d"><Icon name="sausage" size={44} /></span><em>korv på berget</em></div>
-		<div class="polaroid p3"><span style:--c="#5d8a6e"><Icon name="star" size={44} /></span><em>brännboll</em></div>
+		<div class="polaroid p1"><Scene scene="brygga" alt={null} /><em>nattbad</em></div>
+		<div class="polaroid p2"><Scene scene="bal" alt={null} /><em>grillkväll</em></div>
+		<div class="polaroid p3"><Scene scene="kubb" alt={null} /><em>kubb på Lövudden</em></div>
 	</div>
 </section>
 
@@ -115,12 +116,12 @@
 
 	.kicker {
 		margin: 0 0 var(--space-2);
-		font-size: var(--text-xs);
+		font-size: var(--text-md);
 		color: var(--head-text);
 	}
 
 	h1 {
-		font-size: clamp(1.75rem, 5vw, 2.75rem);
+		font-size: clamp(2.5rem, 9vw, 4rem);
 		margin-bottom: var(--space-3);
 	}
 
@@ -130,7 +131,7 @@
 	}
 
 	.pledge {
-		font-size: var(--text-sm);
+		font-size: var(--text-md);
 		color: var(--head-text);
 	}
 
@@ -150,15 +151,6 @@
 		border: 1px solid var(--border);
 		box-shadow: var(--shadow);
 		transition: transform var(--speed) var(--ease);
-	}
-
-	.polaroid span {
-		display: grid;
-		place-items: center;
-		aspect-ratio: 1;
-		color: rgb(255 255 255 / 0.6);
-		background: var(--c);
-		background-image: linear-gradient(160deg, rgb(255 255 255 / 0.18), rgb(0 0 0 / 0.22));
 	}
 
 	.polaroid em {
@@ -197,9 +189,9 @@
 	}
 
 	.section-title {
-		font-family: var(--font-pixel);
+		font-family: var(--font-display);
 		font-weight: 400;
-		font-size: var(--text-lg);
+		font-size: 1.875rem;
 		margin-bottom: var(--space-3);
 	}
 

@@ -88,7 +88,7 @@
 							<p class="post-head small"><UserLink id={post.by} /> <span class="muted">· {post.ago}</span></p>
 							<p class="post-text">{post.text}</p>
 							{#if post.photo}
-								<div class="post-photo"><Photo caption={post.photo.caption} color={post.photo.color} icon={post.photo.icon} /></div>
+								<div class="post-photo"><Photo caption={post.photo.caption} scene={post.photo.scene} /></div>
 							{/if}
 							<div class="row">
 								<button

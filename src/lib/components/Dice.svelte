@@ -122,7 +122,7 @@
 		</button>
 		<div class="result" aria-live="polite">
 			{#if result}
-				<p class="label pixel">Tärningen säger:</p>
+				<p class="label display">Tärningen säger:</p>
 				<p class="idea" data-testid="idea">{result.idea.text}</p>
 				{#if result.idea.place || result.idea.bring}
 					<p class="small muted">
@@ -134,7 +134,7 @@
 					<p class="why xs">Därför nu: {result.reasons.join(' · ')}</p>
 				{/if}
 			{:else}
-				<p class="label pixel">Vad ska vi hitta på?</p>
+				<p class="label display">Vad ska vi hitta på?</p>
 				<p class="idea muted">Klicka på tärningen.</p>
 				<p class="small muted">Den väljer bland {ideas.length} idéer och tar hänsyn till årstid, väder och högtid.</p>
 			{/if}
@@ -302,7 +302,7 @@
 
 	.label {
 		margin: 0 0 4px;
-		font-size: var(--text-xs);
+		font-size: var(--text-lg);
 		color: var(--head-text);
 	}
 

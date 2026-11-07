@@ -63,10 +63,11 @@
 		align-items: center;
 		gap: var(--space-2);
 		margin: 0;
-		font-family: var(--font-pixel);
+		font-family: var(--font-display);
 		font-weight: 400;
-		font-size: var(--text-sm);
-		letter-spacing: 0.03em;
+		font-size: 1.375rem;
+		line-height: 1.1;
+		letter-spacing: 0.01em;
 		color: var(--head-text);
 		text-transform: none;
 	}
