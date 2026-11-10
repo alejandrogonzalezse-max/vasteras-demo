@@ -17,6 +17,7 @@
 	import { DEMO_NOTICE, DESCRIPTION, ME_ID, SITE_NAME, SITE_URL, SLOGAN, TAGLINE, THEME_KEY } from '#lib/config.ts';
 	import { userById } from '#lib/mock.ts';
 	import { demo } from '#lib/state.svelte.ts';
+	import { site } from '#lib/origin.svelte.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Gate from '#lib/components/Gate.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
@@ -78,6 +79,7 @@
 	}
 
 	onMount(() => {
+		site.origin = window.location.origin;
 		scheduleLogins();
 		demo.load();
 		handleEntryParams();

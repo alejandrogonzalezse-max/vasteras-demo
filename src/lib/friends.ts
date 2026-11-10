@@ -1,5 +1,5 @@
 // Vänkoder: en kort kod per person som man kan skriva in eller skanna som QR.
-import { SITE_URL } from './config.ts';
+import { site } from './origin.svelte.ts';
 import { userById, users } from './mock.ts';
 
 export function friendCode(id: string): string {
@@ -14,4 +14,4 @@ export function userByCode(code: string) {
 	return users.find((u) => friendCode(u.id) === c);
 }
 
-export const friendLink = (id: string) => `${SITE_URL}/vanner?kod=${friendCode(id)}`;
+export const friendLink = (id: string) => `${site.origin}/vanner?kod=${friendCode(id)}`;

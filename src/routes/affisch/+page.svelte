@@ -1,22 +1,26 @@
 <script lang="ts">
 	import qrcode from 'qrcode-generator';
-	import { SITE_NAME, SITE_URL, SLOGAN } from '#lib/config.ts';
+	import { SITE_NAME, SLOGAN } from '#lib/config.ts';
+	import { site } from '#lib/origin.svelte.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Scene from '#lib/components/Scene.svelte';
 	import Wordmark from '#lib/components/Wordmark.svelte';
 
 	// QR-koden räknas fram lokalt (MIT-licensierat bibliotek) – ingen extern tjänst.
-	const qr = qrcode(0, 'M');
-	qr.addData(SITE_URL);
-	qr.make();
-	const size = qr.getModuleCount();
-	const qrPath = (() => {
+	const qr = $derived.by(() => {
+		const q = qrcode(0, 'M');
+		q.addData(site.origin);
+		q.make();
+		return q;
+	});
+	const size = $derived(qr.getModuleCount());
+	const qrPath = $derived.by(() => {
 		let d = '';
 		for (let r = 0; r < size; r++)
 			for (let c = 0; c < size; c++) if (qr.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
 		return d;
-	})();
-	const host = SITE_URL.replace(/^https?:\/\//, '');
+	});
+	const host = $derived(site.origin.replace(/^https?:\/\//, ''));
 </script>
 
 <svelte:head><title>Affisch – {SITE_NAME}</title></svelte:head>

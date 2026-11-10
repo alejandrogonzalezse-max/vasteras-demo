@@ -1,0 +1,6 @@
+# Sidor för sådant man skapat själv i demon finns bara i webbläsaren och serveras av appens skal.
+/lapp/*        /200.html  200
+/grupp/*       /200.html  200
+/forum/trad/*  /200.html  200
+# Allt annat som inte finns: appens 404-sida.
+/*             /200.html  404
